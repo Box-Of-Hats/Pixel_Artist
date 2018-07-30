@@ -64,7 +64,7 @@ class Art():
         #Load palette
         palette = {}
         for colour_index, colour in enumerate(components["palette"].split(" ")):
-            palette[colour_index] = colour
+            palette[colour_index] = colour.strip()
         #Load image size
         size = (int(components["size"]), int(components["size"]))
 
@@ -83,7 +83,7 @@ class Art():
                 components[key] = value
                 if key == "palette":
                     for colour_index, colour in enumerate(value.split(" ")):
-                        palette[colour_index] = colour        
+                        palette[colour_index] = colour       
                     break    
         
         self.palette = palette
@@ -105,13 +105,16 @@ class PixelArtApp(Frame):
     """Window"""
     def __init__(self, master=None):
         self.master = master
-        self.art = Art(image_size=(8, 8))
+        self.art = Art(image_size=(16, 16))
         #self.art = Art.load_from_file("example_art.pxlart")
 
         #Options
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.pixel_size = 20 #Size of pixels on the drawing canvas
+
+        #Init variables
+        self.last_export_filename = None
 
         #Init window
         self.init_window()
@@ -127,16 +130,17 @@ class PixelArtApp(Frame):
         self.menu_bar = Menu(self.master)
         self.master.config(menu=self.menu_bar)
         #Add File section to menu bar
-        file_menu = Menu(self.menu_bar)
-        file_menu.add_command(label='Save', command=None, accelerator='') #Add command
-        file_menu.add_command(label='Save As...', command=self._save_to_file, accelerator='') #Add command
-        file_menu.add_command(label='Export as PNG', command=self.export_as_image_file, accelerator='')
-        file_menu.add_separator()
-        file_menu.add_command(label='Load', command=self._load_art_from_file, accelerator='') 
-        file_menu.add_command(label='Load Palette', command=lambda: self._load_palette_from_file(), accelerator='')
-        file_menu.add_separator()
-        file_menu.add_command(label='Exit', command= quit, accelerator='') #Add command
-        self.menu_bar.add_cascade(label='File', menu=file_menu)
+        self.file_menu = Menu(self.menu_bar)
+        self.file_menu.add_command(label='Save', command=None, accelerator='') #Add command
+        self.file_menu.add_command(label='Save As...', command=self._save_to_file, accelerator='') #Add command
+        self.file_menu.add_command(label='Export as PNG', command=self.export_as_image_file, accelerator='')
+        self.file_menu.add_command(label='Export as last PNG (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label='Load', command=self._load_art_from_file, accelerator='') 
+        self.file_menu.add_command(label='Load Palette', command=lambda: self._load_palette_from_file(), accelerator='')
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label='Exit', command= quit, accelerator='') #Add command
+        self.menu_bar.add_cascade(label='File', menu=self.file_menu)
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
         options_menu.add_command(label='Toggle gridlines', command=self._toggle_canvas_grid, accelerator='')
@@ -180,7 +184,7 @@ class PixelArtApp(Frame):
 
         #Keybindings
         #Zoom in (ctrl +)
-        self.master.bind_all("<Control-=>", lambda event: self._set_pixel_size(10))
+        self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(10))
         #Zoom out (ctrl -)
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-10))
 
@@ -222,12 +226,16 @@ class PixelArtApp(Frame):
             self.update_canvas()
             self.update_palette_buttons()
 
-    def export_as_image_file(self):
+    def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
-        filename = filesavebox(title="Export art as png", default="./*.png")
+        if not filename:
+            filename = filesavebox(title="Export art as png", default="./*.png")
         if filename:
             self.art.export_to_image_file(filename)
-                
+            self.last_export_filename = filename
+            self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
+            self.file_menu.entryconfig(3, state="normal")
+
     def change_pen_colour(self, colour_index):
         """
         Change the colour of the drawing pen.
