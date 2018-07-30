@@ -68,8 +68,10 @@ class Art():
         #Load image size
         size = (int(components["size"]), int(components["size"]))
 
-        #Load pixels 
-        pixels = None
+        #Load pixels
+        pixels = [int(pixel.strip()) for pixel in components["pixels"].split(" ")]
+        pixels = [pixels[i:i+size[0]] for i in range(0, len(pixels), size[0])]
+        print(pixels)
             
         return Art(palette=palette, image_size=size, pixels=pixels)
 
@@ -83,7 +85,7 @@ class Art():
                 components[key] = value
                 if key == "palette":
                     for colour_index, colour in enumerate(value.split(" ")):
-                        palette[colour_index] = colour       
+                        palette[colour_index] = colour.strip()      
                     break    
         
         self.palette = palette
@@ -187,6 +189,7 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(10))
         #Zoom out (ctrl -)
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-10))
+        self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
 
     def _toggle_canvas_grid(self):
@@ -212,7 +215,7 @@ class PixelArtApp(Frame):
 
     def _load_palette_from_file(self):
         """Load a palette from a given file"""
-        filename = fileopenbox(title="Export art as png", default="./*.pxlart")
+        filename = fileopenbox(title="Load Palette", default="./*.pxlart")
         if filename:
             self.art.load_palette_from_file(filename)
             self.update_canvas()
@@ -220,7 +223,7 @@ class PixelArtApp(Frame):
 
     def _load_art_from_file(self):
         """Load artwork from a given file"""
-        filename = fileopenbox(title="Export art as png", default="./*.pxlart")
+        filename = fileopenbox(title="Load Art", default="./*.pxlart")
         if filename and ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?"):
             self.art = Art.load_from_file(filename)
             self.update_canvas()
@@ -251,7 +254,7 @@ class PixelArtApp(Frame):
         """
         new_colour = askcolor()[1]
         if new_colour:
-            self.art.palette[colour_index] = new_colour
+            self.art.palette[colour_index] = new_colour.strip()
             self.colour_buttons[colour_index].config(background=new_colour)
             self.change_pen_colour(colour_index)
             self.update_canvas()
