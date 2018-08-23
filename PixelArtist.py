@@ -1,107 +1,11 @@
+from Art import Art, Animation, Pencil, Bucket
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
+import imageio
 
 #For image exporting
 from PIL import Image, ImageDraw
-
-class Art():
-    """Contains palette and pixel data"""
-    def __init__(self, palette=None, image_size=(16, 16), pixels=None):
-        if not palette:
-            #Greyscale palette by default
-            self.palette = {}
-            self.palette[0] = "#FFFFFF"
-            self.palette[1] = "#E5E5E5"
-            self.palette[2] = "#D5D5D5"
-            self.palette[3] = "#C5C5C5"
-            self.palette[4] = "#B5B5B5"
-            self.palette[5] = "#A5A5A5"
-            self.palette[6] = "#959595"
-            self.palette[7] = "#858585"
-        else:
-            self.palette = palette
-
-        if not pixels:
-            #Image is square of palette colour 0 by default.
-            self.pixels = [[0 for x in range(image_size[0])] for y in range(image_size[1])]
-        else:
-            self.pixels = pixels
-
-    
-    def set_pixel(self, x, y, colour):
-        """Set a pixel at a given coordinate"""
-        self.pixels[x][y] = colour
-
-    def html_colour_to_rgb(self, html_colour):
-        """Convert a html colour code to an rgb triple"""
-        r, g, b = html_colour[1:3], html_colour[3:5], html_colour[5:]
-        r, g, b = [int(n, 16) for n in (r, g, b)]
-        return (r, g, b)
-
-    def export_to_image_file(self, filename):
-        """
-        Export the current image to a file
-        """
-        #Create blank image
-        img = Image.new('RGB', (len(self.pixels[1]), len(self.pixels[0])))
-        d = ImageDraw.Draw(img)
-        #Add each individual pixel to the image
-        for xn, x in enumerate(self.pixels):
-            for yn, y in enumerate(x):
-                d.point((yn,xn), fill=(self.html_colour_to_rgb(self.palette[y])))
-
-        img.save(filename)
-
-    def load_from_file(filename):
-        """Load an Art object from a file""" #TODO: Implement pixel loading
-        components = {}
-        with open(filename) as f:
-            for line in f:
-                key, value = line.split(", ")
-                components[key] = value.strip()
-
-        #Load palette
-        palette = {}
-        for colour_index, colour in enumerate(components["palette"].split(" ")):
-            palette[colour_index] = colour.strip()
-        #Load image size
-        size = (int(components["size"]), int(components["size"]))
-
-        #Load pixels
-        pixels = [int(pixel.strip()) for pixel in components["pixels"].split(" ")]
-        pixels = [pixels[i:i+size[0]] for i in range(0, len(pixels), size[0])]
-        print(pixels)
-            
-        return Art(palette=palette, image_size=size, pixels=pixels)
-
-    def load_palette_from_file(self, filename):
-        """Change the palette to one that is loaded from a file."""
-        components = {}
-        palette = {}
-        with open(filename) as f:
-            for line in f:
-                key, value = line.split(", ")
-                components[key] = value
-                if key == "palette":
-                    for colour_index, colour in enumerate(value.split(" ")):
-                        palette[colour_index] = colour.strip()      
-                    break    
-        
-        self.palette = palette
-
-    def save_to_file(self, filename):
-        """Save the art to a file"""
-        with open(filename, "w") as f:
-            #Size
-            f.write("size, {}\n".format(len(self.pixels)))
-            #Palette
-            colours = " ".join([self.palette[index] for index in self.palette])
-            f.write("palette, {}\n".format(colours))
-            #Pixels
-            pixels = " ".join([str(pixel) for pixel_row in self.pixels for pixel in pixel_row])
-            f.write("pixels, {}\n".format(pixels))
-
 
 class PixelArtApp(Frame):
     """Window"""
@@ -117,6 +21,10 @@ class PixelArtApp(Frame):
 
         #Init variables
         self.last_export_filename = None
+
+        #Init tools
+        self.tools = [Pencil(), Bucket()]
+        self.tool_icons = ["Pen", "Bkt"]
 
         #Init window
         self.init_window()
@@ -164,9 +72,12 @@ class PixelArtApp(Frame):
             for j in range(len(self.art.pixels[0])):
                 t = Frame(drawing_canvas_frame, height=self.pixel_size, width=self.pixel_size, bg=self.art.palette[0],)
                 t.grid(column=j, row=i)
-                t.bind('<Button-1>', lambda event, i=i, j=j: self.set_pixel_colour(i, j, self.pen_colour))
+                #t.bind('<Button-1>', lambda event, i=i, j=j: self.set_pixel_colour(i, j, self.pen_colour))
+                t.bind('<Button-1>', lambda event, i=i, j=j: self.activate_tool((j, i)))
                 t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
                 self.canvas_pixels[i][j] = t
+
+        
 
         #Create palete buttons
         self.colour_buttons = []
@@ -183,6 +94,16 @@ class PixelArtApp(Frame):
             #Save the button in a list
             self.colour_buttons.append(colour_button)
         self.colour_buttons[self.pen_colour].config(text=self.colour_select_icon)
+
+        #Create tool selection buttons
+        self.selected_tool_id = IntVar(self.master)
+        self.selected_tool_id.set(0)
+        tool_buttons_container = Frame(self.left_frame)
+        for i in range(0, len(self.tools)):
+            b = Radiobutton(tool_buttons_container, value=i,
+                text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,)
+            b.grid(row=0, column=i)
+        tool_buttons_container.grid(row=5, column=0)
 
         #Keybindings
         #Zoom in (ctrl +)
@@ -280,6 +201,12 @@ class PixelArtApp(Frame):
         self.art.set_pixel(x, y, colour_index)
         colour_value = self.art.palette[colour_index]
         self.canvas_pixels[x][y].config(background=colour_value)
+    
+    def activate_tool(self, location):
+        t = self.tools[self.selected_tool_id.get()]
+        print(t)
+        t.activate(location, self.art.pixels, self.pen_colour)
+        self.update_canvas()
 
 def main():
     root = Tk()
