@@ -21,6 +21,7 @@ class PixelArtApp(Frame):
 
         #Init variables
         self.last_export_filename = None
+        self.preview_image = PhotoImage(file="resources/temp.png")
 
         #Init tools
         self.tools = [Pencil(), Bucket()]
@@ -77,7 +78,9 @@ class PixelArtApp(Frame):
                 t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
                 self.canvas_pixels[i][j] = t
 
-        
+        self.preview_label = Label(self.right_frame, image=self.preview_image)
+        self.preview_label.grid(column=10, row=0)
+
 
         #Create palete buttons
         self.colour_buttons = []
@@ -112,6 +115,15 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-10))
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
+
+    def update_preview_image(self, size=(100,100)):
+        self.art.export_to_image_file("resources/temp.png")
+        self.preview_image = PhotoImage(file="resources/temp.png")
+        x_scaler = 2#(size[0]/self.preview_image.width())
+        y_scaler = 2#int(size[1]/self.preview_image.height())
+        self.preview_image = self.preview_image.zoom(x_scaler, y_scaler)
+        self.preview_label.config(image=self.preview_image)
+        self.master.update()
 
     def _toggle_canvas_grid(self):
         """Toggle the canvas gridlines"""
@@ -189,6 +201,7 @@ class PixelArtApp(Frame):
                 colour_index = self.art.pixels[y][x]
                 colour = self.art.palette[colour_index]
                 pixel_button.config(background=colour)
+        self.update_preview_image()
         print("updating canvas")
 
     def update_palette_buttons(self):
