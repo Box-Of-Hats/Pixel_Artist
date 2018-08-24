@@ -179,6 +179,30 @@ class Bucket(Tool):
 
             visited_locations.append((x,y))
 
+class PartialBucket(Tool):
+    def __init__(self):
+        pass
+
+    def activate(self, location, pixelgrid, symbol):
+        x, y = location[0], location[1]
+        symbol_to_fill = pixelgrid[y][x]
+        visited_locations = []
+        locations_to_expand = [location]
+
+        while len(locations_to_expand) > 0:
+            x, y = locations_to_expand[0]
+
+            if pixelgrid[y][x] == symbol_to_fill:
+                if (x+y)%2==0:
+                    pixelgrid[y][x] = symbol
+                locations_to_expand = locations_to_expand + self._get_neighbouring_locations((x,y), pixelgrid)
+                locations_to_expand = [l for l in locations_to_expand if l not in visited_locations]
+
+            if (x,y) in locations_to_expand:
+                locations_to_expand.remove((x,y))
+
+            visited_locations.append((x,y))
+
 def main():
     a = Art(image_size=(5,5))
     for x in a.pixels:

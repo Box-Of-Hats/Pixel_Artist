@@ -1,4 +1,4 @@
-from Art import Art, Animation, Pencil, Bucket
+from Art import Art, Animation, Pencil, Bucket, PartialBucket
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
@@ -24,8 +24,8 @@ class PixelArtApp(Frame):
         self.preview_image = PhotoImage(file="resources/temp.png")
 
         #Init tools
-        self.tools = [Pencil(), Bucket()]
-        self.tool_icons = ["Pen", "Bkt"]
+        self.tools = [Pencil(), Bucket(), PartialBucket()]
+        self.tool_icons = ["Pen", "Bkt", "///"]
 
         #Init window
         self.init_window()
