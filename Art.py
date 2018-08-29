@@ -37,7 +37,7 @@ class Art():
         r, g, b = [int(n, 16) for n in (r, g, b)]
         return (r, g, b)
 
-    def export_to_image_file(self, filename):
+    def export_to_image_file(self, filename, scalar=10):
         """
         Export the current image to a file
         """
@@ -48,6 +48,8 @@ class Art():
         for xn, x in enumerate(self.pixels):
             for yn, y in enumerate(x):
                 d.point((yn,xn), fill=(self.html_colour_to_rgb(self.palette[y])))
+        
+        img = img.resize((scalar*img.size[0], scalar*img.size[1]))
 
         img.save(filename)
 

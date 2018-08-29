@@ -3,25 +3,26 @@ from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
 import imageio
+import sys
 
 #For image exporting
 from PIL import Image, ImageDraw
 
 class PixelArtApp(Frame):
     """Window"""
-    def __init__(self, master=None):
+    def __init__(self, master=None, canvas_size=(16,16)):
         self.master = master
-        self.art = Art(image_size=(16, 16))
-        #self.art = Art.load_from_file("example_art.pxlart")
+        self.art = Art(image_size=canvas_size)
 
         #Options
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.pixel_size = 20 #Size of pixels on the drawing canvas
+        self.preview_image_scaler = (3,3)
 
         #Init variables
         self.last_export_filename = None
-        self.preview_image = PhotoImage(file="resources/temp.png")
+        self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scaler)
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket()]
@@ -75,12 +76,13 @@ class PixelArtApp(Frame):
                 t.grid(column=j, row=i)
                 #t.bind('<Button-1>', lambda event, i=i, j=j: self.set_pixel_colour(i, j, self.pen_colour))
                 t.bind('<Button-1>', lambda event, i=i, j=j: self.activate_tool((j, i)))
-                t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
+                #t.bind('<B1-Motion>', lambda event, i=i, j=j: self.activate_tool((j, i)))
+                #t.bind('<Enter>', lambda event, i=i, j=j: self.activate_tool((j, i)))
+                #t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
                 self.canvas_pixels[i][j] = t
 
         self.preview_label = Label(self.right_frame, image=self.preview_image)
         self.preview_label.grid(column=10, row=0)
-
 
         #Create palete buttons
         self.colour_buttons = []
@@ -115,13 +117,12 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-10))
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
-
     def update_preview_image(self, size=(100,100)):
-        self.art.export_to_image_file("resources/temp.png")
+        self.art.export_to_image_file("resources/temp.png", scalar=1)
         self.preview_image = PhotoImage(file="resources/temp.png")
         x_scaler = 2#(size[0]/self.preview_image.width())
         y_scaler = 2#int(size[1]/self.preview_image.height())
-        self.preview_image = self.preview_image.zoom(x_scaler, y_scaler)
+        self.preview_image = self.preview_image.zoom(*self.preview_image_scaler)
         self.preview_label.config(image=self.preview_image)
         self.master.update()
 
@@ -164,6 +165,12 @@ class PixelArtApp(Frame):
 
     def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
+        root = Tk()
+        root.title("Export as PNG...")
+        SaveArtWindow(root, self.art)
+        root.mainloop()
+
+        """
         if not filename:
             filename = filesavebox(title="Export art as png", default="./*.png")
         if filename:
@@ -171,6 +178,7 @@ class PixelArtApp(Frame):
             self.last_export_filename = filename
             self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
             self.file_menu.entryconfig(3, state="normal")
+        """
 
     def change_pen_colour(self, colour_index):
         """
@@ -221,9 +229,45 @@ class PixelArtApp(Frame):
         t.activate(location, self.art.pixels, self.pen_colour)
         self.update_canvas()
 
+class SaveArtWindow(Toplevel):
+    def __init__(self, master, art):
+        self.master = master
+        self.main_frame = Frame(master)
+        self.main_frame.grid(row=0, column=0, padx=60, pady=40)
+        self.art = art
+
+        #self.art.export_to_image_file("resources/temp.png", scalar=1)
+        #self.preview_image = PhotoImage(file="resources/temp.png")
+        
+        #self.preview_label = Label(self.main_frame, image=self.preview_image)
+        #self.preview_label.grid(row=0, column=0)
+
+        self.master.update()
+
+        self.scale_input = Scale(self.main_frame, from_=1, to=20, orient=HORIZONTAL)
+        self.scale_input.grid(row=5, column=0)
+
+        self.file_select_button = Button(self.main_frame, text="Save", command=lambda: self.save_art())
+        self.file_select_button.grid(row=20, column=0)
+
+    def save_art(self):
+        scale = int(self.scale_input.get())
+
+        filename = filesavebox(title="Export art as png", default="./*.png")
+        if filename:
+            self.art.export_to_image_file(filename, scale)
+            self.master.destroy()
+            #self.last_export_filename = filename
+            #self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
+            #self.file_menu.entryconfig(3, state="normal")
+
+
+
 def main():
+    canvas_size = (int(sys.argv[1]), int(sys.argv[2]))
     root = Tk()
-    w = PixelArtApp(root)
+    w = PixelArtApp(root, canvas_size)
+    #w = SaveArtWindow(root)
     root.mainloop()
 
 if __name__ == "__main__":
