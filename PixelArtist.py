@@ -18,11 +18,11 @@ class PixelArtApp(Frame):
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.pixel_size = 20 #Size of pixels on the drawing canvas
-        self.preview_image_scaler = (3,3)
+        self.preview_image_scalar = (3,3)
 
         #Init variables
         self.last_export_filename = None
-        self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scaler)
+        self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket()]
@@ -120,9 +120,9 @@ class PixelArtApp(Frame):
     def update_preview_image(self, size=(100,100)):
         self.art.export_to_image_file("resources/temp.png", scalar=1)
         self.preview_image = PhotoImage(file="resources/temp.png")
-        x_scaler = 2#(size[0]/self.preview_image.width())
-        y_scaler = 2#int(size[1]/self.preview_image.height())
-        self.preview_image = self.preview_image.zoom(*self.preview_image_scaler)
+        x_scalar = 2#(size[0]/self.preview_image.width())
+        y_scalar = 2#int(size[1]/self.preview_image.height())
+        self.preview_image = self.preview_image.zoom(*self.preview_image_scalar)
         self.preview_label.config(image=self.preview_image)
         self.master.update()
 
