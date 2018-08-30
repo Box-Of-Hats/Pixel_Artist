@@ -19,6 +19,7 @@ class PixelArtApp(Frame):
         self.colour_select_icon = "⊶"
         self.pixel_size = 20 #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3)
+        self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
 
         #Init variables
         self.last_export_filename = None
@@ -56,8 +57,8 @@ class PixelArtApp(Frame):
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
         options_menu.add_command(label='Toggle gridlines', command=self._toggle_canvas_grid, accelerator='')
-        options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(10), accelerator='Ctrl+')
-        options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-10), accelerator='Ctrl-')
+        options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
+        options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
 
         #Split window into two frames
@@ -112,9 +113,9 @@ class PixelArtApp(Frame):
 
         #Keybindings
         #Zoom in (ctrl +)
-        self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(10))
+        self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(self.zoom_change_amount))
         #Zoom out (ctrl -)
-        self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-10))
+        self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
     def update_preview_image(self, size=(100,100)):
@@ -136,6 +137,8 @@ class PixelArtApp(Frame):
     def _set_pixel_size(self, modifier_value):
         """Update size of pixels to be a new value"""
         self.pixel_size += modifier_value
+        #Ensure that pixel size is 1 or greater to prevent sizing issues
+        self.pixel_size = max(1, self.pixel_size)
         for y, pixel_row in enumerate(self.canvas_pixels):
             for x, pixel in enumerate(pixel_row):
                 pixel.config(width=self.pixel_size)
