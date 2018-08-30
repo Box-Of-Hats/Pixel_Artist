@@ -2,9 +2,9 @@ from Art import Art, Animation, Pencil, Bucket, PartialBucket
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
-import imageio
 import sys
-
+#For exporting as .gifs
+import imageio
 #For image exporting
 from PIL import Image, ImageDraw
 
