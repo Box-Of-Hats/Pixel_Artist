@@ -122,8 +122,8 @@ class PixelArtApp(Frame):
         """Draw the art preview image to the preview label."""
         self.art.export_to_image_file("resources/temp.png", scalar=1)
         self.preview_image = PhotoImage(file="resources/temp.png")
-        x_scalar = 2#(size[0]/self.preview_image.width())
-        y_scalar = 2#int(size[1]/self.preview_image.height())
+        x_scalar = 4#(size[0]/self.preview_image.width())
+        y_scalar = 4#int(size[1]/self.preview_image.height())
         self.preview_image = self.preview_image.zoom(*self.preview_image_scalar)
         self.preview_label.config(image=self.preview_image)
         self.master.update()
@@ -169,7 +169,7 @@ class PixelArtApp(Frame):
 
     def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
-        root = Tk()
+        root = Toplevel()
         root.title("Export as PNG...")
         SaveArtWindow(root, self.art)
         root.mainloop()
@@ -237,22 +237,22 @@ class SaveArtWindow(Toplevel):
     def __init__(self, master, art):
         self.master = master
         self.main_frame = Frame(master)
-        self.main_frame.grid(row=0, column=0, padx=60, pady=40)
+        self.main_frame.grid(row=0, column=0, padx=20, pady=20)
         self.art = art
 
-        #self.art.export_to_image_file("resources/temp.png", scalar=1)
-        #self.preview_image = PhotoImage(file="resources/temp.png")
+        self.preview_image = PhotoImage(file="resources/temp.png").zoom(6)
         
-        #self.preview_label = Label(self.main_frame, image=self.preview_image)
-        #self.preview_label.grid(row=0, column=0)
+        self.preview_label = Label(self.main_frame, image=self.preview_image)
+        self.preview_label.grid(row=30, column=0)
 
         self.master.update()
 
-        self.scale_input = Scale(self.main_frame, from_=1, to=20, orient=HORIZONTAL)
-        self.scale_input.grid(row=5, column=0)
+        self.scale_input = Scale(self.main_frame, from_=1, to=100, length=200, orient=HORIZONTAL, command= lambda e:self._update_preview_image())
+        self.scale_input.grid(row=5, column=0, sticky="nw")
+        self.scale_input.set(20)
 
         self.file_select_button = Button(self.main_frame, text="Save", command=lambda: self.save_art())
-        self.file_select_button.grid(row=20, column=0)
+        self.file_select_button.grid(row=20, column=0, sticky="nw")
 
     def save_art(self):
         scale = int(self.scale_input.get())
@@ -264,6 +264,12 @@ class SaveArtWindow(Toplevel):
             #self.last_export_filename = filename
             #self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
             #self.file_menu.entryconfig(3, state="normal")
+    
+    def _update_preview_image(self):
+        scale = int(self.scale_input.get())
+        print("Updating preview {}".format(scale))
+        self.preview_image = PhotoImage(file="resources/temp.png").zoom(scale)
+        self.preview_label.config(image=self.preview_image)
 
 
 
