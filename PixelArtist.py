@@ -18,7 +18,7 @@ class PixelArtApp(Frame):
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.pixel_size = 20 #Size of pixels on the drawing canvas
-        self.preview_image_scalar = (3,3)
+        self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
 
         #Init variables
@@ -119,6 +119,7 @@ class PixelArtApp(Frame):
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
     def update_preview_image(self, size=(100,100)):
+        """Draw the art preview image to the preview label."""
         self.art.export_to_image_file("resources/temp.png", scalar=1)
         self.preview_image = PhotoImage(file="resources/temp.png")
         x_scalar = 2#(size[0]/self.preview_image.width())
@@ -135,7 +136,7 @@ class PixelArtApp(Frame):
                 pixel.config(highlightthickness=toggled_thickness)
     
     def _set_pixel_size(self, modifier_value):
-        """Update size of pixels to be a new value"""
+        """Update size of pixels to be a new value."""
         self.pixel_size += modifier_value
         #Ensure that pixel size is 1 or greater to prevent sizing issues
         self.pixel_size = max(1, self.pixel_size)
