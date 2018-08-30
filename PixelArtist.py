@@ -160,7 +160,10 @@ class PixelArtApp(Frame):
             self.update_palette_buttons()
 
     def _load_art_from_file(self):
-        """Load artwork from a given file"""
+        """
+        Load artwork from a given file.
+        Note: Art must be same resolution as current canvas
+        """
         filename = fileopenbox(title="Load Art", default="./*.pxlart")
         if filename and ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?"):
             self.art = Art.load_from_file(filename)
@@ -274,10 +277,13 @@ class SaveArtWindow(Toplevel):
 
 
 def main():
-    canvas_size = (int(sys.argv[1]), int(sys.argv[2]))
+    try:
+        canvas_size = (int(sys.argv[1]), int(sys.argv[2]))
+    except:
+        canvas_size = (16, 16)
     root = Tk()
     w = PixelArtApp(root, canvas_size)
-    #w = SaveArtWindow(root)
+
     root.mainloop()
 
 if __name__ == "__main__":
