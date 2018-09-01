@@ -1,4 +1,4 @@
-from Art import Art, Animation, Pencil, Bucket, PartialBucket
+from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
@@ -30,8 +30,8 @@ class PixelArtApp(Frame):
         self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
 
         #Init tools
-        self.tools = [Pencil(), Bucket(), PartialBucket()]
-        self.tool_icons = ["Pen", "Bkt", "///"]
+        self.tools = [Pencil(), Bucket(), PartialBucket(), MirroredPencil("x"), MirroredPencil("y")]
+        self.tool_icons = ["Pen", "Bkt", "///", "x", "y"]
 
         #Init window
         self.init_window()

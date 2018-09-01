@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 class Art():
     """Contains palette and pixel data"""
     def __init__(self, palette=None, image_size=(16, 16), pixels=None):
+        self.image_size = image_size
         if not palette:
             #Greyscale palette by default
             self.palette = {}
@@ -30,7 +31,7 @@ class Art():
     def set_pixel(self, x, y, colour):
         """Set a pixel at a given coordinate"""
         self.pixels[x][y] = colour
-
+        
     def html_colour_to_rgb(self, html_colour):
         """Convert a html colour code to an rgb triple"""
         r, g, b = html_colour[1:3], html_colour[3:5], html_colour[5:]
@@ -149,6 +150,22 @@ class Tool():
                 nieghbours.append(direction)
         return nieghbours
 
+class MirroredPencil(Tool):
+    def __init__(self, axis="x"):
+        self.axis = axis
+
+    def activate(self, location, pixelgrid, symbol):
+        x, y = location[0], location[1]
+        pixelgrid[y][x] = symbol
+
+        if self.axis == "y":
+            mirrored_x = len(pixelgrid[0])-1-x
+            print("mirroring to: ", mirrored_x, y)
+            pixelgrid[y][mirrored_x] = symbol
+        else:
+            mirrored_y = len(pixelgrid[1])-1-y
+            print("mirroring to: ", x, mirrored_y)
+            pixelgrid[mirrored_y][x] = symbol
 
 class Pencil(Tool):
     def __init__(self):
