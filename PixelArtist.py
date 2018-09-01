@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
 import sys
+import os
 #For exporting as .gifs
 import imageio
 #For image exporting
@@ -10,14 +11,17 @@ from PIL import Image, ImageDraw
 
 class PixelArtApp(Frame):
     """Window"""
-    def __init__(self, master=None, canvas_size=(16,16)):
+    def __init__(self, master=None, art=None, canvas_size=(16,16), pixel_size=20):
         self.master = master
-        self.art = Art(image_size=canvas_size)
-
+        if art:
+            self.art = art
+        else:
+            self.art = Art(image_size=canvas_size)
+        
         #Options
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
-        self.pixel_size = 20 #Size of pixels on the drawing canvas
+        self.pixel_size = pixel_size #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
 
@@ -45,14 +49,14 @@ class PixelArtApp(Frame):
         #Add File section to menu bar
         self.file_menu = Menu(self.menu_bar)
         self.file_menu.add_command(label='Save', command=None, accelerator='') #Add command
-        self.file_menu.add_command(label='Save As...', command=self._save_to_file, accelerator='') #Add command
+        self.file_menu.add_command(label='Save As...', command=self._save_to_file, accelerator='')
         self.file_menu.add_command(label='Export as PNG', command=self.export_as_image_file, accelerator='')
         self.file_menu.add_command(label='Export as last PNG (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Load', command=self._load_art_from_file, accelerator='') 
-        self.file_menu.add_command(label='Load Palette', command=lambda: self._load_palette_from_file(), accelerator='')
+        self.file_menu.add_command(label='Load', command=self.load_art_from_file, accelerator='') 
+        self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Exit', command= quit, accelerator='') #Add command
+        self.file_menu.add_command(label='Exit', command= quit, accelerator='')
         self.menu_bar.add_cascade(label='File', menu=self.file_menu)
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
@@ -118,6 +122,11 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
+        #Finally, ensure that the canvas is loaded properly
+        # and that the art is in-sync.
+        self.update_canvas()
+        self.update_palette_buttons()
+
     def update_preview_image(self, size=(100,100)):
         """Draw the art preview image to the preview label."""
         self.art.export_to_image_file("resources/temp.png", scalar=1)
@@ -151,21 +160,23 @@ class PixelArtApp(Frame):
         if filename:
             self.art.save_to_file(filename)
 
-    def _load_palette_from_file(self):
+    def load_palette_from_file(self, filename=None):
         """Load a palette from a given file"""
-        filename = fileopenbox(title="Load Palette", default="./*.pxlart")
+        if not filename:
+            filename = fileopenbox(title="Load Palette", default="./*.pxlart")
         if filename:
             self.art.load_palette_from_file(filename)
             self.update_canvas()
             self.update_palette_buttons()
 
-    def _load_art_from_file(self):
+    def load_art_from_file(self, filename=None, ignore_warning=False):
         """
         Load artwork from a given file.
         Note: Art must be same resolution as current canvas
         """
-        filename = fileopenbox(title="Load Art", default="./*.pxlart")
-        if filename and ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?"):
+        if not filename:
+            filename = fileopenbox(title="Load Art", default="./*.pxlart")
+        if filename and (ignore_warning or ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?")):
             self.art = Art.load_from_file(filename)
             self.update_canvas()
             self.update_palette_buttons()
@@ -277,12 +288,25 @@ class SaveArtWindow(Toplevel):
 
 
 def main():
+    art_to_load = None
+    canvas_size = (8, 8)
     try:
-        canvas_size = (int(sys.argv[1]), int(sys.argv[2]))
-    except:
-        canvas_size = (16, 16)
+        if os.path.splitext(sys.argv[1])[1] == ".pxlart":
+            try:
+                art_to_load = Art.load_from_file(sys.argv[1])
+            except FileNotFoundError:
+                print("Could not find file: {}".format(sys.argv[1]))
+        else:
+            try:
+                canvas_size = (int(sys.argv[1]), int(sys.argv[1]))
+            except ValueError:
+                print("Using default canvas size")
+
+    except ValueError:
+        print("Using default canvas size")
+
     root = Tk()
-    w = PixelArtApp(root, canvas_size)
+    w = PixelArtApp(root, art_to_load, canvas_size, pixel_size=10)
 
     root.mainloop()
 
