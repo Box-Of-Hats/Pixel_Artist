@@ -60,6 +60,8 @@ class PixelArtApp(Frame):
         self.file_menu.add_command(label='Load', command=self.load_art_from_file, accelerator='') 
         self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
         self.file_menu.add_separator()
+        self.file_menu.add_command(label='Clear Canvas', command=lambda: self.clear_canvas(ask_confirm=True), accelerator="Ctrl+Shift+D")
+        self.file_menu.add_separator()
         self.file_menu.add_command(label='Exit', command= quit, accelerator='')
         self.menu_bar.add_cascade(label='File', menu=self.file_menu)
         #Add Options section to menu bar
@@ -83,10 +85,7 @@ class PixelArtApp(Frame):
             for j in range(len(self.art.pixels[0])):
                 t = Frame(drawing_canvas_frame, height=self.pixel_size, width=self.pixel_size, bg=self.art.palette[0],)
                 t.grid(column=j, row=i)
-                #t.bind('<Button-1>', lambda event, i=i, j=j: self.set_pixel_colour(i, j, self.pen_colour))
                 t.bind('<Button-1>', lambda event, i=i, j=j: self.activate_tool((j, i)))
-                #t.bind('<B1-Motion>', lambda event, i=i, j=j: self.activate_tool((j, i)))
-                #t.bind('<Enter>', lambda event, i=i, j=j: self.activate_tool((j, i)))
                 t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
                 self.canvas_pixels[i][j] = t
 
@@ -133,6 +132,8 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(self.zoom_change_amount))
         #Zoom out (ctrl -)
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
+        #Clear canvas (ctrl shift d)
+        self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=True))
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
         #Finally, ensure that the canvas is loaded properly
@@ -149,6 +150,16 @@ class PixelArtApp(Frame):
         self.preview_image = self.preview_image.zoom(*self.preview_image_scalar)
         self.preview_label.config(image=self.preview_image)
         self.master.update()
+
+    def clear_canvas(self, ask_confirm=True):
+        """Clear the current canvas"""
+        if ask_confirm:
+            user_confirmed = ccbox("Are you sure you want to clear the canvas?")
+        else:
+            user_confirmed = True
+        if user_confirmed:
+            self.art = Art(self.art.palette, self.art.image_size, pixels=None)
+            self.update_canvas()
 
     def _toggle_canvas_grid(self):
         """Toggle the canvas gridlines"""
