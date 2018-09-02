@@ -37,6 +37,13 @@ class Art():
         r, g, b = html_colour[1:3], html_colour[3:5], html_colour[5:]
         r, g, b = [int(n, 16) for n in (r, g, b)]
         return (r, g, b)
+    
+    def rgb_colour_to_html(self, r, g, b):
+        """Convert a rgb triple to a hex colour"""
+        def clamp(x): 
+            return max(0, min(x, 255))
+        return "#{0:02x}{1:02x}{2:02x}".format(clamp(r), clamp(g), clamp(b))
+
 
     def export_to_image_file(self, filename, scalar=10, transparent_palette_index=None):
         """

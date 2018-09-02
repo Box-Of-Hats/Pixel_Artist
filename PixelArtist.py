@@ -2,6 +2,7 @@ from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
+import random
 import sys
 import os
 #For exporting as .gifs
@@ -61,6 +62,7 @@ class PixelArtApp(Frame):
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Load', command=self.load_art_from_file, accelerator='') 
         self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
+        self.file_menu.add_command(label='Random Palette', command=lambda: self.randomise_palette(), accelerator='Ctrl+Shift+R')
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Clear Canvas', command=lambda: self.clear_canvas(ask_confirm=True), accelerator="Ctrl+Shift+D")
         self.file_menu.add_separator()
@@ -139,7 +141,9 @@ class PixelArtApp(Frame):
         #Zoom out (ctrl -)
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
         #Clear canvas (ctrl shift d)
-        self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=True))
+        self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=False))
+        #Clear canvas (ctrl shift R)
+        self.master.bind_all("<Control-R>", lambda event: self.randomise_palette(ask_confirm=False))
         #Undo (ctrl z)
         self.master.bind_all("<Control-z>", lambda event: self.undo())
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
@@ -185,6 +189,20 @@ class PixelArtApp(Frame):
             for x, pixel in enumerate(pixel_row):
                 pixel.config(width=self.pixel_size)
                 pixel.config(height=self.pixel_size)
+
+    def randomise_palette(self, ask_confirm=True):
+        """Randomise the current palette"""
+        if ask_confirm:
+            confirmed = ccbox("Are you sure? You will lose your current palette", "Randomise Palette")
+        else:
+            confirmed = True
+        if confirmed:
+            for index in self.art.palette.keys():
+                random_colour = self.art.rgb_colour_to_html(random.choice(range(0, 255)), random.choice(range(0, 255)), random.choice(range(0, 255)))
+                self.art.palette[index] = random_colour
+            self.update_canvas()
+            self.update_palette_buttons()
+            self.update_preview_image()
 
     def _save_to_file(self):
         """Save current artwork/palette to a file"""
