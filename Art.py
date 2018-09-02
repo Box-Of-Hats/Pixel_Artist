@@ -38,17 +38,18 @@ class Art():
         r, g, b = [int(n, 16) for n in (r, g, b)]
         return (r, g, b)
 
-    def export_to_image_file(self, filename, scalar=10):
+    def export_to_image_file(self, filename, scalar=10, transparent_palette_index=None):
         """
         Export the current image to a file
         """
         #Create blank image
-        img = Image.new('RGB', (len(self.pixels[1]), len(self.pixels[0])))
+        img = Image.new('RGBA', (len(self.pixels[1]), len(self.pixels[0])))
         d = ImageDraw.Draw(img)
         #Add each individual pixel to the image
         for xn, x in enumerate(self.pixels):
             for yn, y in enumerate(x):
-                d.point((yn,xn), fill=(self.html_colour_to_rgb(self.palette[y])))
+                if y != transparent_palette_index:
+                    d.point((yn,xn), fill=(self.html_colour_to_rgb(self.palette[y])))
         
         img = img.resize((scalar*img.size[0], scalar*img.size[1]))
 
@@ -158,14 +159,17 @@ class MirroredPencil(Tool):
         x, y = location[0], location[1]
         pixelgrid[y][x] = symbol
 
-        if self.axis == "y":
+        if "y" in self.axis:
             mirrored_x = len(pixelgrid[0])-1-x
             print("mirroring to: ", mirrored_x, y)
             pixelgrid[y][mirrored_x] = symbol
-        else:
+        if "x" in self.axis:
             mirrored_y = len(pixelgrid[1])-1-y
             print("mirroring to: ", x, mirrored_y)
             pixelgrid[mirrored_y][x] = symbol
+        if "xy" in self.axis or "yx" in self.axis:
+            pixelgrid[mirrored_y][mirrored_x] = symbol
+
 
 class Pencil(Tool):
     def __init__(self):

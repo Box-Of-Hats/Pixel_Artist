@@ -24,14 +24,18 @@ class PixelArtApp(Frame):
         self.pixel_size = pixel_size #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
+        self.tools_selection_per_row = 3
 
         #Init variables
         self.last_export_filename = None
         self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
 
         #Init tools
-        self.tools = [Pencil(), Bucket(), PartialBucket(), MirroredPencil("x"), MirroredPencil("y")]
-        self.tool_icons = ["Pen", "Bkt", "///", "x", "y"]
+        self.tools = [Pencil(), Bucket(), PartialBucket(),
+                      MirroredPencil("x"), MirroredPencil("y"), MirroredPencil("xy")]
+        self.tool_icons = ["resources/pen.png", "resources/bucket.png",
+                           "resources/partialbucket.png", "resources/penX.png",
+                           "resources/penY.png", "resources/penXY.png"]
 
         #Init window
         self.init_window()
@@ -83,7 +87,7 @@ class PixelArtApp(Frame):
                 t.bind('<Button-1>', lambda event, i=i, j=j: self.activate_tool((j, i)))
                 #t.bind('<B1-Motion>', lambda event, i=i, j=j: self.activate_tool((j, i)))
                 #t.bind('<Enter>', lambda event, i=i, j=j: self.activate_tool((j, i)))
-                #t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
+                t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
                 self.canvas_pixels[i][j] = t
 
         self.preview_label = Label(self.right_frame, image=self.preview_image)
@@ -109,11 +113,20 @@ class PixelArtApp(Frame):
         self.selected_tool_id = IntVar(self.master)
         self.selected_tool_id.set(0)
         tool_buttons_container = Frame(self.left_frame)
+        row_no = 0
         for i in range(0, len(self.tools)):
+            if i%self.tools_selection_per_row == 0:
+                row_no += 1
+            try:
+                img = PhotoImage(file=self.tool_icons[i])
+            except TclError:
+                img=None
             b = Radiobutton(tool_buttons_container, value=i,
-                text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,)
-            b.grid(row=0, column=i)
-        tool_buttons_container.grid(row=5, column=0)
+                image=img, text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,
+                indicatoron=0, bd=0)
+            b.img = img
+            b.grid(row=row_no, column=i%self.tools_selection_per_row)
+        tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
 
         #Keybindings
         #Zoom in (ctrl +)
@@ -265,6 +278,10 @@ class SaveArtWindow(Toplevel):
         self.scale_input.grid(row=5, column=0, sticky="nw")
         self.scale_input.set(20)
 
+        self.white_as_transparent = IntVar()
+        self.white_as_transparent_btn = Checkbutton(self.main_frame, text="White as transparent", variable=self.white_as_transparent)
+        self.white_as_transparent_btn.grid(row=10, column=0, sticky="nw")
+
         self.file_select_button = Button(self.main_frame, text="Save", command=lambda: self.save_art())
         self.file_select_button.grid(row=20, column=0, sticky="nw")
 
@@ -273,7 +290,12 @@ class SaveArtWindow(Toplevel):
 
         filename = filesavebox(title="Export art as png", default="./*.png")
         if filename:
-            self.art.export_to_image_file(filename, scale)
+            if self.white_as_transparent.get() == 1:
+                transparent_option = 0
+            else:
+                transparent_option = None
+
+            self.art.export_to_image_file(filename, scale, transparent_option)
             self.master.destroy()
             #self.last_export_filename = filename
             #self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
@@ -304,6 +326,9 @@ def main():
 
     except ValueError:
         print("Using default canvas size")
+    
+    except IndexError:
+        print("No args provided. Using default canvas size.")
 
     root = Tk()
     w = PixelArtApp(root, art_to_load, canvas_size, pixel_size=10)
