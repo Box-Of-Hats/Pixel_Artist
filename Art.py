@@ -39,7 +39,10 @@ class Art():
         return (r, g, b)
     
     def rgb_colour_to_html(self, r, g, b):
-        """Convert a rgb triple to a hex colour"""
+        """
+        "Convert a rgb triple to a hex colour
+        src: https://stackoverflow.com/questions/3380726/converting-a-rgb-color-tuple-to-a-six-digit-code-in-python
+        """
         def clamp(x): 
             return max(0, min(x, 255))
         return "#{0:02x}{1:02x}{2:02x}".format(clamp(r), clamp(g), clamp(b))

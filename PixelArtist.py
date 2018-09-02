@@ -336,11 +336,22 @@ class SaveArtWindow(Toplevel):
         self.white_as_transparent_btn = Checkbutton(self.main_frame, text="White as transparent", variable=self.white_as_transparent)
         self.white_as_transparent_btn.grid(row=10, column=0, sticky="nw")
 
+        image_format_container = Frame(self.main_frame)
+        self.image_format = StringVar()
+        self.image_format_select = Listbox(image_format_container, height=1)
+        #self.image_format_select.insert(0, "JPG")
+        self.image_format_select.insert(0, "PNG")
+        self.image_format_select.grid(row=0, column=1)
+        Label(image_format_container, text="Format").grid(row=0, column=0)
+        image_format_container.grid(row=12, column=0, sticky="nw")
+
+
         self.file_select_button = Button(self.main_frame, text="Save", command=lambda: self.save_art())
         self.file_select_button.grid(row=20, column=0, sticky="nw")
 
     def save_art(self):
         scale = int(self.scale_input.get())
+        image_format = self.image_format.get()
 
         filename = filesavebox(title="Export art as png", default="./*.png")
         if filename:
