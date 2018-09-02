@@ -25,10 +25,12 @@ class PixelArtApp(Frame):
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
+        self.art_history_length = 5
 
         #Init variables
         self.last_export_filename = None
         self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
+        self.art_history = []
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -64,6 +66,10 @@ class PixelArtApp(Frame):
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Exit', command= quit, accelerator='')
         self.menu_bar.add_cascade(label='File', menu=self.file_menu)
+        #Add Edit section to menu bar
+        self.edit_menu = Menu(self.menu_bar)
+        self.edit_menu.add_command(label='Undo', command=lambda:self.undo(), accelerator="Ctrl+Z")
+        self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
         options_menu.add_command(label='Toggle gridlines', command=self._toggle_canvas_grid, accelerator='')
@@ -134,6 +140,8 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
         #Clear canvas (ctrl shift d)
         self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=True))
+        #Undo (ctrl z)
+        self.master.bind_all("<Control-z>", lambda event: self.undo())
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
         #Finally, ensure that the canvas is loaded properly
@@ -267,10 +275,26 @@ class PixelArtApp(Frame):
         self.canvas_pixels[x][y].config(background=colour_value)
     
     def activate_tool(self, location):
+        #Add change to history
+        self.art_history.append(self.art.copy())
+        while len(self.art_history) >= self.art_history_length:
+            self.art_history.remove(self.art_history[0])
+
         t = self.tools[self.selected_tool_id.get()]
         print(t)
         t.activate(location, self.art.pixels, self.pen_colour)
         self.update_canvas()
+        
+
+    def undo(self):
+        """Return to the previous art state"""
+        try:
+            previous_state = self.art_history.pop()
+            self.art = previous_state
+            self.update_canvas()
+        except IndexError:
+            print("Cant undo any more")
+        
 
 class SaveArtWindow(Toplevel):
     def __init__(self, master, art):

@@ -1,5 +1,5 @@
+import copy
 import imageio
-
 #For image exporting
 from PIL import Image, ImageDraw
 
@@ -103,6 +103,11 @@ class Art():
             #Pixels
             pixels = " ".join([str(pixel) for pixel_row in self.pixels for pixel in pixel_row])
             f.write("pixels, {}\n".format(pixels))
+    
+    def copy(self):
+        """Get a new instance of this art object"""
+        new_pixels = copy.deepcopy(self.pixels)
+        return Art(self.palette, self.image_size, new_pixels )
 
 
 class Animation():
