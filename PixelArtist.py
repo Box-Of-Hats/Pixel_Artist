@@ -224,7 +224,8 @@ class PixelArtApp(Frame):
         """
         Change the colour of one of the individual colours in the palette.
         """
-        new_colour = askcolor()[1]
+        default_colour = self.art.palette[colour_index]
+        new_colour = askcolor(default_colour)[1]
         if new_colour:
             self.art.palette[colour_index] = new_colour.strip()
             self.colour_buttons[colour_index].config(background=new_colour)
