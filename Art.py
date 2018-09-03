@@ -1,5 +1,6 @@
 import copy
 import imageio
+import os
 #For image exporting
 from PIL import Image, ImageDraw
 
@@ -52,13 +53,19 @@ class Art():
         """
         Export the current image to a file
         """
+        format_colour_modes = {
+            ".jpg": "RGB",
+            ".png": "RGBA"
+        }
+        
+        colour_mode = format_colour_modes[os.path.splitext(filename)[1]]
         #Create blank image
-        img = Image.new('RGBA', (len(self.pixels[1]), len(self.pixels[0])))
+        img = Image.new(colour_mode, (len(self.pixels[1]), len(self.pixels[0])))
         d = ImageDraw.Draw(img)
         #Add each individual pixel to the image
         for xn, x in enumerate(self.pixels):
             for yn, y in enumerate(x):
-                if y != transparent_palette_index:
+                if y != transparent_palette_index or not "A" in colour_mode:
                     d.point((yn,xn), fill=(self.html_colour_to_rgb(self.palette[y])))
         
         img = img.resize((scalar*img.size[0], scalar*img.size[1]))

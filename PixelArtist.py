@@ -59,8 +59,8 @@ class PixelArtApp(Frame):
         self.file_menu = Menu(self.menu_bar)
         self.file_menu.add_command(label='Save', command=lambda: self._save_to_file(self.previous_file_save), accelerator='Ctrl+S') #Add command
         self.file_menu.add_command(label='Save As...', command=lambda: self._save_to_file(), accelerator='Ctrl+Shift+S')
-        self.file_menu.add_command(label='Export as PNG', command= self.export_as_image_file, accelerator='')
-        self.file_menu.add_command(label='Export as last PNG (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
+        self.file_menu.add_command(label='Export as Image', command= self.export_as_image_file, accelerator='')
+        self.file_menu.add_command(label='Export as last Image (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='') 
         self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
@@ -146,13 +146,13 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-s>", lambda event: self._save_to_file(self.previous_file_save))
         #Save As (ctrl shift S)
         self.master.bind_all("<Control-S>", lambda event: self._save_to_file())
-
         #Clear canvas (ctrl shift d)
         self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=False))
         #Clear canvas (ctrl shift R)
         self.master.bind_all("<Control-R>", lambda event: self.randomise_palette(ask_confirm=False))
         #Undo (ctrl z)
         self.master.bind_all("<Control-z>", lambda event: self.undo())
+        #Quit program on window close
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
         #Finally, ensure that the canvas is loaded properly
@@ -244,7 +244,7 @@ class PixelArtApp(Frame):
     def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
         root = Toplevel()
-        root.title("Export as PNG...")
+        root.title("Export as image...")
         SaveArtWindow(root, self.art)
         root.mainloop()
 
@@ -348,7 +348,7 @@ class SaveArtWindow(Toplevel):
         image_format_container = Frame(self.main_frame)
         self.image_format = StringVar()
         self.image_format_select = Listbox(image_format_container, height=1)
-        #self.image_format_select.insert(0, "JPG")
+        self.image_format_select.insert(0, "JPG")
         self.image_format_select.insert(0, "PNG")
         self.image_format_select.grid(row=0, column=1)
         Label(image_format_container, text="Format").grid(row=0, column=0)
@@ -362,7 +362,7 @@ class SaveArtWindow(Toplevel):
         scale = int(self.scale_input.get())
         image_format = self.image_format.get()
 
-        filename = filesavebox(title="Export art as png", default="./*.png")
+        filename = filesavebox(title="Export art...", default="./*.png")
         if filename:
             if self.white_as_transparent.get() == 1:
                 transparent_option = 0
