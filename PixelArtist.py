@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw
 class PixelArtApp(Frame):
     """Window"""
     def __init__(self, master=None, art=None, canvas_size=(16,16), pixel_size=20):
+        super().__init__()
         self.master = master
         if art:
             self.art = art
@@ -32,6 +33,7 @@ class PixelArtApp(Frame):
         self.last_export_filename = None
         self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
         self.art_history = []
+        self.previous_file_save = False
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -55,12 +57,12 @@ class PixelArtApp(Frame):
         self.master.config(menu=self.menu_bar)
         #Add File section to menu bar
         self.file_menu = Menu(self.menu_bar)
-        self.file_menu.add_command(label='Save', command=None, accelerator='') #Add command
-        self.file_menu.add_command(label='Save As...', command=self._save_to_file, accelerator='')
-        self.file_menu.add_command(label='Export as PNG', command=self.export_as_image_file, accelerator='')
+        self.file_menu.add_command(label='Save', command=lambda: self._save_to_file(self.previous_file_save), accelerator='Ctrl+S') #Add command
+        self.file_menu.add_command(label='Save As...', command=lambda: self._save_to_file(), accelerator='Ctrl+Shift+S')
+        self.file_menu.add_command(label='Export as PNG', command= self.export_as_image_file, accelerator='')
         self.file_menu.add_command(label='Export as last PNG (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Load', command=self.load_art_from_file, accelerator='') 
+        self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='') 
         self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
         self.file_menu.add_command(label='Random Palette', command=lambda: self.randomise_palette(), accelerator='Ctrl+Shift+R')
         self.file_menu.add_separator()
@@ -140,6 +142,11 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(self.zoom_change_amount))
         #Zoom out (ctrl -)
         self.master.bind_all("<Control-minus>", lambda event: self._set_pixel_size(-self.zoom_change_amount))
+        #Save (ctrl S)
+        self.master.bind_all("<Control-s>", lambda event: self._save_to_file(self.previous_file_save))
+        #Save As (ctrl shift S)
+        self.master.bind_all("<Control-S>", lambda event: self._save_to_file())
+
         #Clear canvas (ctrl shift d)
         self.master.bind_all("<Control-D>", lambda event: self.clear_canvas(ask_confirm=False))
         #Clear canvas (ctrl shift R)
@@ -204,11 +211,14 @@ class PixelArtApp(Frame):
             self.update_palette_buttons()
             self.update_preview_image()
 
-    def _save_to_file(self):
+    def _save_to_file(self, filename=None):
         """Save current artwork/palette to a file"""
-        filename = filesavebox(title="Save art to file", default="./*.pxlart")
+        if not filename:
+            filename = filesavebox(title="Save art to file", default="./*.pxlart")
         if filename:
+            print("Saving to: {}".format(filename))
             self.art.save_to_file(filename)
+            self.previous_file_save = filename
 
     def load_palette_from_file(self, filename=None):
         """Load a palette from a given file"""
@@ -303,7 +313,6 @@ class PixelArtApp(Frame):
         t.activate(location, self.art.pixels, self.pen_colour)
         self.update_canvas()
         
-
     def undo(self):
         """Return to the previous art state"""
         try:
