@@ -28,6 +28,7 @@ class PixelArtApp(Frame):
         self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
         self.art_history_length = 5
+        self.show_debug_console = False
 
         #Init variables
         self.last_export_filename = None
@@ -49,7 +50,7 @@ class PixelArtApp(Frame):
         """Initialise the window"""
         self.master.title('Pixel Artist')
         #self.master.geometry('{}x{}'.format(220, 40))
-        #self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
         self.master.option_add('*tearOff', False)
 
         #Create menu bar
@@ -137,6 +138,13 @@ class PixelArtApp(Frame):
             b.grid(row=row_no, column=i%self.tools_selection_per_row)
         tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
 
+        self.bottom_frame = Frame(self.master)
+        self.bottom_frame.grid(row=50, column=0, columnspan=100, sticky="nsew")
+        self.output_console = Listbox(self.bottom_frame, height=4, width=30, borderwidth=0, highlightcolor="#000000",
+                                        relief=FLAT, bg="#000000", fg="#FFFFFF")
+        if self.show_debug_console:
+            self.output_console.pack(expand=True, fill=BOTH)
+
         #Keybindings
         #Zoom in (ctrl +)
         self.master.bind_all("<Control-equal>", lambda event: self._set_pixel_size(self.zoom_change_amount))
@@ -152,6 +160,10 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-R>", lambda event: self.randomise_palette(ask_confirm=False))
         #Undo (ctrl z)
         self.master.bind_all("<Control-z>", lambda event: self.undo())
+        #Show/hide debug console (F12)
+        self.master.bind_all("<F12>", lambda event: self.toggle_show_console())
+        #On window resize
+        self.master.after(100, lambda: self.master.bind("<Configure>", lambda event: self._on_window_resize(event)))
         #Quit program on window close
         self.master.protocol('WM_DELETE_WINDOW', lambda: quit())
 
@@ -196,6 +208,7 @@ class PixelArtApp(Frame):
             for x, pixel in enumerate(pixel_row):
                 pixel.config(width=self.pixel_size)
                 pixel.config(height=self.pixel_size)
+        self.update_window_size()
 
     def randomise_palette(self, ask_confirm=True):
         """Randomise the current palette"""
@@ -216,7 +229,7 @@ class PixelArtApp(Frame):
         if not filename:
             filename = filesavebox(title="Save art to file", default="./*.pxlart")
         if filename:
-            print("Saving to: {}".format(filename))
+            self.log("Saving to: {}".format(filename))
             self.art.save_to_file(filename)
             self.previous_file_save = filename
 
@@ -289,7 +302,7 @@ class PixelArtApp(Frame):
                 colour = self.art.palette[colour_index]
                 pixel_button.config(background=colour)
         self.update_preview_image()
-        print("updating canvas")
+        self.log("updating canvas")
 
     def update_palette_buttons(self):
         """Update colour of palette buttons to be consistant with the art palette"""
@@ -309,7 +322,7 @@ class PixelArtApp(Frame):
             self.art_history.remove(self.art_history[0])
 
         t = self.tools[self.selected_tool_id.get()]
-        print(t)
+        self.log(t)
         t.activate(location, self.art.pixels, self.pen_colour)
         self.update_canvas()
         
@@ -320,7 +333,37 @@ class PixelArtApp(Frame):
             self.art = previous_state
             self.update_canvas()
         except IndexError:
-            print("Cant undo any more")
+            self.log("Cant undo any more")
+    
+    def log(self, output):
+        print(output)
+        self.output_console.insert(END, output)
+        self.output_console.see(END)
+    
+    def _on_window_resize(self, event):
+        """Window was resized"""
+        pass
+
+    def update_window_size(self, height_pad=0, width_pad=0):
+        """Update the window size to fit to the widgets"""
+        self.master.update()
+        if self.show_debug_console:
+            height_pad += self.output_console.winfo_height()
+        w = self.right_frame.winfo_width() + self.left_frame.winfo_width() + width_pad
+        h = height_pad + max(self.right_frame.winfo_height(), self.left_frame.winfo_height())
+        self.master.geometry("{}x{}".format(w, h))
+
+    def toggle_show_console(self):
+        self.show_debug_console = not self.show_debug_console
+        if self.show_debug_console:
+            self.output_console.pack(expand=True, fill=BOTH)
+
+            self.update_window_size()
+
+        else:
+            self.output_console.pack_forget()
+
+            self.update_window_size()
         
 
 class SaveArtWindow(Toplevel):
