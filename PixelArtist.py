@@ -238,6 +238,7 @@ class PixelArtApp(Frame):
         if not filename:
             filename = fileopenbox(title="Load Palette", default="./*.pxlart")
         if filename:
+            self.log("Loading from: {}".format(filename))
             self.art.load_palette_from_file(filename)
             self.update_canvas()
             self.update_palette_buttons()
@@ -250,6 +251,7 @@ class PixelArtApp(Frame):
         if not filename:
             filename = fileopenbox(title="Load Art", default="./*.pxlart")
         if filename and (ignore_warning or ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?")):
+            self.log("Loading from: {}".format(filename))
             self.art = Art.load_from_file(filename)
             self.update_canvas()
             self.update_palette_buttons()
@@ -279,6 +281,7 @@ class PixelArtApp(Frame):
         for button in self.colour_buttons:
             button.config(text="")
         self.colour_buttons[colour_index].config(text=self.colour_select_icon)
+        self.log("Set pen colour to: {}".format(colour_index))
 
     def change_palette_colour(self, colour_index):
         """
@@ -302,7 +305,7 @@ class PixelArtApp(Frame):
                 colour = self.art.palette[colour_index]
                 pixel_button.config(background=colour)
         self.update_preview_image()
-        self.log("updating canvas")
+        self.log("Updating canvas...")
 
     def update_palette_buttons(self):
         """Update colour of palette buttons to be consistant with the art palette"""
@@ -322,7 +325,7 @@ class PixelArtApp(Frame):
             self.art_history.remove(self.art_history[0])
 
         t = self.tools[self.selected_tool_id.get()]
-        self.log(t)
+        self.log("{} @ {}".format(type(t).__name__, location))
         t.activate(location, self.art.pixels, self.pen_colour)
         self.update_canvas()
         
@@ -332,8 +335,9 @@ class PixelArtApp(Frame):
             previous_state = self.art_history.pop()
             self.art = previous_state
             self.update_canvas()
+            self.log("Undoing")
         except IndexError:
-            self.log("Cant undo any more")
+            self.log("Reached undo limit: {}".format(self.art_history_length))
     
     def log(self, output):
         print(output)
@@ -356,15 +360,12 @@ class PixelArtApp(Frame):
     def toggle_show_console(self):
         self.show_debug_console = not self.show_debug_console
         if self.show_debug_console:
+            self.log("Show console")
             self.output_console.pack(expand=True, fill=BOTH)
-
-            self.update_window_size()
-
         else:
+            self.log("Hide console")
             self.output_console.pack_forget()
-
-            self.update_window_size()
-        
+        self.update_window_size()
 
 class SaveArtWindow(Toplevel):
     def __init__(self, master, art):
