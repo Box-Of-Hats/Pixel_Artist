@@ -38,6 +38,7 @@ class PixelArtApp(Frame):
         self.art_history = []
         self.previous_file_save = False
         self.show_gridlines = False
+        self.enable_drag = False
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -81,6 +82,7 @@ class PixelArtApp(Frame):
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
         options_menu.add_command(label='Toggle gridlines', command=self._toggle_canvas_grid, accelerator='')
+        options_menu.add_command(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
         options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
         options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
@@ -98,14 +100,6 @@ class PixelArtApp(Frame):
         self.drawing_canvas = Canvas(drawing_canvas_frame, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
         self.drawing_canvas.grid(row=0, column=0)
         self.drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
-
-        def button1_move(e):
-            self.drawing_canvas.unbind("<B1-Motion>")
-            self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)))
-            self.drawing_canvas.after(10, lambda: self.drawing_canvas.bind('<B1-Motion>', lambda e: button1_move(e)))
-
-        self.drawing_canvas.bind('<B1-Motion>', lambda e: button1_move(e))
-
         self.drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
 
         #Preview Label
@@ -169,10 +163,8 @@ class PixelArtApp(Frame):
         self.master.bind_all("<Control-R>", lambda event: self.randomise_palette(ask_confirm=False))
         #Undo (ctrl z)
         self.master.bind_all("<Control-z>", lambda event: self.undo())
-        #Disable mousedrag (Ctrl M)
-        self.master.bind_all("<Control-m>", lambda event: self.drawing_canvas.unbind("<B1-Motion>") )
-        #Enable mousedrag (Ctrl Shift M)
-        self.master.bind_all("<Control-M>", lambda event: self.drawing_canvas.bind('<B1-Motion>', lambda e: button1_move(e)))
+        #Enable/Disable mousedrag (Ctrl M)
+        self.master.bind_all("<Control-m>", lambda event: self.toggle_allow_drag() )
         #Show/hide debug console (F12)
         self.master.bind_all("<F12>", lambda event: self.toggle_show_console())
         #On window resize
@@ -204,6 +196,26 @@ class PixelArtApp(Frame):
         if user_confirmed:
             self.art = Art(self.art.palette, self.art.image_size, pixels=None)
             self.update_canvas()
+
+    def toggle_allow_drag(self):
+        def button1_move(e):
+            try:
+                print(self.prev)
+            except:
+                self.prev = None
+            cur = (e.x, e.y)
+            if cur != self.prev:
+                self.prev = cur
+                self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)))
+        
+        self.enable_drag = not self.enable_drag
+
+        if self.enable_drag:
+            self.log("Enabling mouse drag")
+            self.drawing_canvas.bind('<B1-Motion>', lambda e: button1_move(e))
+        else:
+            self.log("Disabling mouse drag")
+            self.drawing_canvas.unbind("<B1-Motion>")
 
     def _toggle_canvas_grid(self):
         """Toggle the canvas gridlines"""
