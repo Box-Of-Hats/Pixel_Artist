@@ -2,6 +2,7 @@ from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
+import math
 import random
 import sys
 import os
@@ -12,7 +13,7 @@ from PIL import Image, ImageDraw
 
 class PixelArtApp(Frame):
     """Window"""
-    def __init__(self, master=None, art=None, canvas_size=(16,16), pixel_size=20):
+    def __init__(self, master=None, art=None, canvas_size=(16,16), pixel_size=10):
         super().__init__()
         self.master = master
         if art:
@@ -23,9 +24,10 @@ class PixelArtApp(Frame):
         #Options
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
+        self.min_pixel_size = 10
         self.pixel_size = pixel_size #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
-        self.zoom_change_amount = 10 #The amount of pixels to increase/decrease pixel size by
+        self.zoom_change_amount = 1.1 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
         self.art_history_length = 5
         self.show_debug_console = False
@@ -35,6 +37,7 @@ class PixelArtApp(Frame):
         self.preview_image = PhotoImage(file="resources/default.png").zoom(*self.preview_image_scalar)
         self.art_history = []
         self.previous_file_save = False
+        self.show_gridlines = False
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -92,14 +95,12 @@ class PixelArtApp(Frame):
         self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
         drawing_canvas_frame = Frame(self.right_frame)
         drawing_canvas_frame.grid(column=0, row=0, padx=10, pady=10)
-        for i in range(len(self.art.pixels[1])):
-            for j in range(len(self.art.pixels[0])):
-                t = Frame(drawing_canvas_frame, height=self.pixel_size, width=self.pixel_size, bg=self.art.palette[0],)
-                t.grid(column=j, row=i)
-                t.bind('<Button-1>', lambda event, i=i, j=j: self.activate_tool((j, i)))
-                t.bind('<Button-3>', lambda event, i=i, j=j: self.change_pen_colour(self.art.pixels[i][j]))
-                self.canvas_pixels[i][j] = t
+        self.drawing_canvas = Canvas(drawing_canvas_frame, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
+        self.drawing_canvas.grid(row=0, column=0)
+        self.drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
+        self.drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
 
+        #Preview Label
         self.preview_label = Label(self.right_frame, image=self.preview_image)
         self.preview_label.grid(column=10, row=0)
 
@@ -194,21 +195,38 @@ class PixelArtApp(Frame):
 
     def _toggle_canvas_grid(self):
         """Toggle the canvas gridlines"""
-        for y, pixel_row in enumerate(self.canvas_pixels):
-            for x, pixel in enumerate(pixel_row):
-                toggled_thickness = (pixel.cget('highlightthickness') + 1) % 2
-                pixel.config(highlightthickness=toggled_thickness)
+        self.show_gridlines = not self.show_gridlines
+        if self.show_gridlines:
+            self.log("Show Gridlines")
+            for grid_index in range(0, len(self.art.pixels[0])):
+                self.drawing_canvas.create_line(grid_index*self.pixel_size, 0,
+                                                grid_index*self.pixel_size, self.pixel_size*len(self.art.pixels[0]),
+                                                tags="gridline")
+                self.drawing_canvas.create_line(0, grid_index*self.pixel_size, 
+                                                self.pixel_size*len(self.art.pixels[0]), grid_index*self.pixel_size,
+                                            tags="gridline")
+        else:
+            self.log("Hide Gridlines")
+            self.drawing_canvas.delete("gridline")
     
-    def _set_pixel_size(self, modifier_value):
+    def _set_pixel_size(self, scale):
         """Update size of pixels to be a new value."""
-        self.pixel_size += modifier_value
-        #Ensure that pixel size is 1 or greater to prevent sizing issues
-        self.pixel_size = max(1, self.pixel_size)
-        for y, pixel_row in enumerate(self.canvas_pixels):
-            for x, pixel in enumerate(pixel_row):
-                pixel.config(width=self.pixel_size)
-                pixel.config(height=self.pixel_size)
+        if scale < 0:
+            #Zooming out
+            scale = abs(scale)
+            self.pixel_size = max(1, self.pixel_size / scale)
+            self.drawing_canvas.config(height=self.pixel_size*len(self.art.pixels[0]),
+                                    width=self.pixel_size*len(self.art.pixels[1]))
+            self.drawing_canvas.scale(ALL, 0, 0, 1/scale, 1/scale)
+        else:
+            #Zooming in
+            self.pixel_size = self.pixel_size * scale
+            self.drawing_canvas.config(height=self.pixel_size*len(self.art.pixels[0]),
+                                    width=self.pixel_size*len(self.art.pixels[1]))
+            self.drawing_canvas.scale(ALL, 0, 0, scale, scale)
+
         self.update_window_size()
+        self.log("Changing pixel size: {}".format(self.pixel_size))
 
     def randomise_palette(self, ask_confirm=True):
         """Randomise the current palette"""
@@ -255,6 +273,7 @@ class PixelArtApp(Frame):
             self.art = Art.load_from_file(filename)
             self.update_canvas()
             self.update_palette_buttons()
+            self.update_window_size()
 
     def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
@@ -299,11 +318,15 @@ class PixelArtApp(Frame):
 
     def update_canvas(self):
         """Update the drawing canvas so the correct colours are showing"""
+        self.drawing_canvas.delete("rect")
         for y, pixel_row in enumerate(self.canvas_pixels):
             for x, pixel_button in enumerate(pixel_row):
                 colour_index = self.art.pixels[y][x]
                 colour = self.art.palette[colour_index]
-                pixel_button.config(background=colour)
+                #pixel_button.config(background=colour)
+                self.drawing_canvas.create_rectangle(x*self.pixel_size, y*self.pixel_size, x*self.pixel_size+self.pixel_size, y*self.pixel_size+self.pixel_size,
+                                                    fill=colour, width=0, tags="rect")
+        self.drawing_canvas.tag_raise("gridline")
         self.update_preview_image()
         self.log("Updating canvas...")
 
