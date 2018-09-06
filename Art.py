@@ -1,6 +1,8 @@
 import copy
 import imageio
 import os
+import math
+import colorsys
 #For image exporting
 from PIL import Image, ImageDraw
 
@@ -28,7 +30,40 @@ class Art():
         else:
             self.pixels = pixels
 
-    
+    def sort_palette(self):
+        """Sort the colour palette"""
+
+        def step_sort(r,g,b, repetitions=1):
+            """Set up sorting function"""
+            lum = math.sqrt( .241 * r + .691 * g + .068 * b )
+            h, s, v = colorsys.rgb_to_hsv(r,g,b)
+            h2 = int(h * repetitions)
+            lum2 = int(lum * repetitions)
+            v2 = int(v * repetitions)
+            if h2 % 2 == 1:
+                v2 = repetitions - v2
+                lum2 = repetitions - lum2
+            return (h2, lum2, v2)
+
+        colours_as_list = [self.html_colour_to_rgb(self.palette[index]) for index in self.palette]
+        sorted_colours = sorted(colours_as_list, key= lambda rgb: step_sort(*rgb,10))
+        old_palette = copy.copy(self.palette)
+        old_pixels = copy.deepcopy(self.pixels)
+
+        #Actually sort the palette
+        for key in self.palette:
+            self.palette[key] = self.rgb_colour_to_html(*sorted_colours[key])
+        
+        #Update the pixel value to the new indexes
+        for old_index in old_palette:
+            colour = old_palette[old_index]
+            new_index = [k for k,v in self.palette.items() if v.lower()==colour.lower()][0]
+            for y, row in enumerate(old_pixels):
+                for x, index in enumerate(row):
+                    if index == old_index:
+                        self.pixels[y][x] = new_index
+        
+        
     def set_pixel(self, x, y, colour):
         """Set a pixel at a given coordinate"""
         self.pixels[x][y] = colour

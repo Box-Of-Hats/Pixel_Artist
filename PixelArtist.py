@@ -2,14 +2,11 @@ from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox
+from PIL import Image, ImageDraw
 import math
 import random
 import sys
 import os
-#For exporting as .gifs
-import imageio
-#For image exporting
-from PIL import Image, ImageDraw
 
 class PixelArtApp(Frame):
     """Window"""
@@ -27,7 +24,7 @@ class PixelArtApp(Frame):
         self.min_pixel_size = 10
         self.pixel_size = pixel_size #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
-        self.zoom_change_amount = 1.1 #The amount of pixels to increase/decrease pixel size by
+        self.zoom_change_amount = 1.25 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
         self.art_history_length = 5
         self.show_debug_console = False
@@ -48,13 +45,12 @@ class PixelArtApp(Frame):
                            "resources/partialbucket.png", "resources/penX.png",
                            "resources/penY.png", "resources/penXY.png"]
 
-        #Init window
         self.init_window()
     
     def init_window(self):
         """Initialise the window"""
         self.master.title('Pixel Artist')
-        #self.master.geometry('{}x{}'.format(220, 40))
+        self.master.geometry('+{}+{}'.format(int(self.master.winfo_screenwidth()/2)-100, int(self.master.winfo_screenheight()/2)-200))
         self.master.resizable(0, 0)
         self.master.option_add('*tearOff', False)
 
@@ -79,6 +75,7 @@ class PixelArtApp(Frame):
         #Add Edit section to menu bar
         self.edit_menu = Menu(self.menu_bar)
         self.edit_menu.add_command(label='Undo', command=lambda:self.undo(), accelerator="Ctrl+Z")
+        self.edit_menu.add_command(label='Sort Palette', command=lambda:self.sort_palette(), accelerator="")
         self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
@@ -86,6 +83,7 @@ class PixelArtApp(Frame):
         options_menu.add_command(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
         options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
         options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
+        options_menu.add_command(label='Show/Hide Debug Console', command=lambda: self.toggle_show_console(), accelerator='F12')
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
 
         #Split window into two frames
@@ -95,14 +93,9 @@ class PixelArtApp(Frame):
         self.right_frame.grid(column=20, row=10)
 
         #Create drawing canvas
-        #self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
         self.drawing_canvas_frame = Frame(self.right_frame)
         self.drawing_canvas_frame.grid(column=0, row=0, padx=10, pady=10)
         self.drawing_canvas = self._generate_drawing_canvas(self.drawing_canvas_frame)
-        #self.drawing_canvas = Canvas(self.drawing_canvas_frame, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
-        #self.drawing_canvas.grid(row=0, column=0)
-        #self.drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
-        #self.drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
 
         #Preview Label
         self.preview_label = Label(self.right_frame, image=self.preview_image)
@@ -180,6 +173,7 @@ class PixelArtApp(Frame):
         self.update_palette_buttons()
 
     def _generate_drawing_canvas(self, parent):
+        """Generate a drawing canvas object"""
         self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
         drawing_canvas = Canvas(parent, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
         drawing_canvas.grid(row=0, column=0)
@@ -208,6 +202,7 @@ class PixelArtApp(Frame):
             self.update_canvas()
 
     def toggle_allow_drag(self):
+        """Toggle the ability to draw while dragging the mouse"""
         def button1_move(e):
             try:
                 print(self.prev)
@@ -262,6 +257,11 @@ class PixelArtApp(Frame):
         self.update_window_size()
         self.log("Changing pixel size: {}".format(self.pixel_size))
 
+    def sort_palette(self):
+        self.art.sort_palette()
+        self.update_palette_buttons()
+        self.update_canvas()
+
     def randomise_palette(self, ask_confirm=True):
         """Randomise the current palette"""
         if ask_confirm:
@@ -272,6 +272,7 @@ class PixelArtApp(Frame):
             for index in self.art.palette.keys():
                 random_colour = self.art.rgb_colour_to_html(random.choice(range(0, 255)), random.choice(range(0, 255)), random.choice(range(0, 255)))
                 self.art.palette[index] = random_colour
+            self.art.sort_palette()
             self.update_canvas()
             self.update_palette_buttons()
             self.update_preview_image()
@@ -382,6 +383,7 @@ class PixelArtApp(Frame):
         self.canvas_pixels[x][y].config(background=colour_value)
     
     def activate_tool(self, location, redraw=True):
+        """Activate a the currently selected drawing tool at a given location"""
         #Add change to history
         self.art_history.append(self.art.copy())
         while len(self.art_history) >= self.art_history_length:
@@ -407,6 +409,7 @@ class PixelArtApp(Frame):
             self.log("Reached undo limit: {}".format(self.art_history_length))
     
     def log(self, output):
+        """Output a string to the debug console"""
         print(output)
         self.output_console.insert(END, output)
         while self.output_console.size() > self.max_log_length:
@@ -427,6 +430,7 @@ class PixelArtApp(Frame):
         self.master.geometry("{}x{}".format(w, h))
 
     def toggle_show_console(self):
+        """Toggle the display of the debug console"""
         self.show_debug_console = not self.show_debug_console
         if self.show_debug_console:
             self.log("Show console")
