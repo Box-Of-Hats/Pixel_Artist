@@ -31,6 +31,7 @@ class PixelArtApp(Frame):
         self.tools_selection_per_row = 3
         self.art_history_length = 5
         self.show_debug_console = False
+        self.max_log_length = 10
 
         #Init variables
         self.last_export_filename = None
@@ -94,13 +95,14 @@ class PixelArtApp(Frame):
         self.right_frame.grid(column=20, row=10)
 
         #Create drawing canvas
-        self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
-        drawing_canvas_frame = Frame(self.right_frame)
-        drawing_canvas_frame.grid(column=0, row=0, padx=10, pady=10)
-        self.drawing_canvas = Canvas(drawing_canvas_frame, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
-        self.drawing_canvas.grid(row=0, column=0)
-        self.drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
-        self.drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
+        #self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
+        self.drawing_canvas_frame = Frame(self.right_frame)
+        self.drawing_canvas_frame.grid(column=0, row=0, padx=10, pady=10)
+        self.drawing_canvas = self._generate_drawing_canvas(self.drawing_canvas_frame)
+        #self.drawing_canvas = Canvas(self.drawing_canvas_frame, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
+        #self.drawing_canvas.grid(row=0, column=0)
+        #self.drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
+        #self.drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
 
         #Preview Label
         self.preview_label = Label(self.right_frame, image=self.preview_image)
@@ -177,6 +179,14 @@ class PixelArtApp(Frame):
         self.update_canvas()
         self.update_palette_buttons()
 
+    def _generate_drawing_canvas(self, parent):
+        self.canvas_pixels = [[0 for x in range(len(self.art.pixels[0]))] for y in range(len(self.art.pixels[1]))]
+        drawing_canvas = Canvas(parent, width=len(self.art.pixels[0])*self.pixel_size, height=len(self.art.pixels[1])*self.pixel_size)
+        drawing_canvas.grid(row=0, column=0)
+        drawing_canvas.bind('<Button-1>', lambda e: self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))))
+        drawing_canvas.bind('<Button-3>', lambda e: self.change_pen_colour(self.art.pixels[math.floor(e.y/self.pixel_size)][math.floor(e.x/self.pixel_size)]))
+        return drawing_canvas
+
     def update_preview_image(self, size=(100,100)):
         """Draw the art preview image to the preview label."""
         self.art.export_to_image_file("resources/temp.png", scalar=1)
@@ -203,7 +213,7 @@ class PixelArtApp(Frame):
                 print(self.prev)
             except:
                 self.prev = None
-            cur = (e.x, e.y)
+            cur = (math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))
             if cur != self.prev:
                 self.prev = cur
                 self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)))
@@ -293,8 +303,13 @@ class PixelArtApp(Frame):
         if not filename:
             filename = fileopenbox(title="Load Art", default="./*.pxlart")
         if filename and (ignore_warning or ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?")):
+            
             self.log("Loading from: {}".format(filename))
             self.art = Art.load_from_file(filename)
+
+            self.drawing_canvas.destroy()
+            self.drawing_canvas = self._generate_drawing_canvas(self.drawing_canvas_frame)
+
             self.update_canvas()
             self.update_palette_buttons()
             self.update_window_size()
@@ -374,7 +389,10 @@ class PixelArtApp(Frame):
 
         t = self.tools[self.selected_tool_id.get()]
         self.log("{} @ {}".format(type(t).__name__, location))
-        t.activate(location, self.art.pixels, self.pen_colour)
+        try:
+            t.activate(location, self.art.pixels, self.pen_colour)
+        except IndexError:
+            pass
         if redraw:
             self.update_canvas()
         
@@ -391,6 +409,8 @@ class PixelArtApp(Frame):
     def log(self, output):
         print(output)
         self.output_console.insert(END, output)
+        while self.output_console.size() > self.max_log_length:
+            self.output_console.delete(0)
         self.output_console.see(END)
     
     def _on_window_resize(self, event):
