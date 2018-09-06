@@ -10,7 +10,7 @@ import os
 
 class PixelArtApp(Frame):
     """Window"""
-    def __init__(self, master=None, art=None, canvas_size=(16,16), pixel_size=10):
+    def __init__(self, master=None, art=None, canvas_size=(16,16)):
         super().__init__()
         self.master = master
         if art:
@@ -22,7 +22,7 @@ class PixelArtApp(Frame):
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.min_pixel_size = 10
-        self.pixel_size = pixel_size #Size of pixels on the drawing canvas
+        self.pixel_size = 300/len(self.art.pixels[0]) #Size of pixels on the drawing canvas
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 1.25 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
@@ -53,6 +53,7 @@ class PixelArtApp(Frame):
         self.master.geometry('+{}+{}'.format(int(self.master.winfo_screenwidth()/2)-100, int(self.master.winfo_screenheight()/2)-200))
         self.master.resizable(0, 0)
         self.master.option_add('*tearOff', False)
+        self.master.config(bg="#FF00FF")
 
         #Create menu bar
         self.menu_bar = Menu(self.master)
@@ -87,10 +88,10 @@ class PixelArtApp(Frame):
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
 
         #Split window into two frames
-        self.left_frame = Frame(self.master, width=150, height=300, background="#DDDDFF")
-        self.left_frame.grid(column=10, row=10)
-        self.right_frame = Frame(self.master, width=300, height=300, background="#000000")
-        self.right_frame.grid(column=20, row=10)
+        self.left_frame = Frame(self.master, width=150, height=300, background="#97e5b1")
+        self.left_frame.grid(column=10, row=10, sticky="ns")
+        self.right_frame = Frame(self.master, width=300, height=300, background="#e097e5")
+        self.right_frame.grid(column=20, row=10,sticky="nsew")
 
         #Create drawing canvas
         self.drawing_canvas_frame = Frame(self.right_frame)
@@ -211,7 +212,7 @@ class PixelArtApp(Frame):
             cur = (math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size))
             if cur != self.prev:
                 self.prev = cur
-                self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)))
+                self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)),draw_all=False)
         
         self.enable_drag = not self.enable_drag
 
@@ -317,7 +318,7 @@ class PixelArtApp(Frame):
 
     def export_as_image_file(self, filename=False):
         """Export the current canvas to an image file"""
-        root = Toplevel()
+        root = Toplevel(master=self)
         root.title("Export as image...")
         SaveArtWindow(root, self.art)
         root.mainloop()
@@ -356,17 +357,32 @@ class PixelArtApp(Frame):
         else:
             pass
 
-    def update_canvas(self, clear_canvas=True):
-        """Update the drawing canvas so the correct colours are showing"""
+    def update_canvas(self, clear_canvas=True, selected_pixels=False):
+        """
+        Update the drawing canvas so the correct colours are showing.
+        clear_canvas defines whether the canvas should be deleted.
+        selected_pixels is a list of coordinates of pixels that
+        should be updated. Updates all pixels by default
+        """
         if clear_canvas:
             self.drawing_canvas.delete("rect")
-        for y, pixel_row in enumerate(self.canvas_pixels):
-            for x, pixel_button in enumerate(pixel_row):
+        if not selected_pixels:
+            for y, pixel_row in enumerate(self.canvas_pixels):
+                for x, pixel_button in enumerate(pixel_row):
+                    colour_index = self.art.pixels[y][x]
+                    colour = self.art.palette[colour_index]
+
+                    self.drawing_canvas.create_rectangle(x*self.pixel_size, y*self.pixel_size, x*self.pixel_size+self.pixel_size, y*self.pixel_size+self.pixel_size,
+                                                        fill=colour, width=0, tags="rect")
+        else:
+            for pixel in selected_pixels:
+                x = pixel[0]
+                y = pixel[1]
                 colour_index = self.art.pixels[y][x]
                 colour = self.art.palette[colour_index]
-                #pixel_button.config(background=colour)
                 self.drawing_canvas.create_rectangle(x*self.pixel_size, y*self.pixel_size, x*self.pixel_size+self.pixel_size, y*self.pixel_size+self.pixel_size,
-                                                    fill=colour, width=0, tags="rect")
+                                                        fill=colour, width=0, tags="rect")
+
         self.drawing_canvas.tag_raise("gridline")
         self.update_preview_image()
         self.log("Updating canvas...")
@@ -382,8 +398,10 @@ class PixelArtApp(Frame):
         colour_value = self.art.palette[colour_index]
         self.canvas_pixels[x][y].config(background=colour_value)
     
-    def activate_tool(self, location, redraw=True):
-        """Activate a the currently selected drawing tool at a given location"""
+    def activate_tool(self, location, draw_all=True):
+        """
+        Activate a the currently selected drawing tool at a given location.
+        disabling draw_all means that only new pixels will be updated on the canvas"""
         #Add change to history
         self.art_history.append(self.art.copy())
         while len(self.art_history) >= self.art_history_length:
@@ -395,8 +413,11 @@ class PixelArtApp(Frame):
             t.activate(location, self.art.pixels, self.pen_colour)
         except IndexError:
             pass
-        if redraw:
+
+        if draw_all:
             self.update_canvas()
+        else:
+            self.update_canvas(clear_canvas=False, selected_pixels=[(location)])
         
     def undo(self):
         """Return to the previous art state"""
@@ -446,6 +467,7 @@ class SaveArtWindow(Toplevel):
         self.main_frame = Frame(master)
         self.main_frame.grid(row=0, column=0, padx=20, pady=20)
         self.art = art
+        self.master.grab_set()
 
         self.preview_image = PhotoImage(file="resources/temp.png").zoom(6)
         
@@ -522,7 +544,7 @@ def main():
         print("No args provided. Using default canvas size.")
 
     root = Tk()
-    w = PixelArtApp(root, art_to_load, canvas_size, pixel_size=10)
+    w = PixelArtApp(root, art_to_load, canvas_size)
 
     root.mainloop()
 

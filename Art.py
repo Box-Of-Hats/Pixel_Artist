@@ -31,7 +31,8 @@ class Art():
             self.pixels = pixels
 
     def sort_palette(self):
-        """Sort the colour palette"""
+        """Sort the colour palette.
+        Sorting colours is actually really hard so this does its best."""
 
         def step_sort(r,g,b, repetitions=1):
             """Set up sorting function"""
