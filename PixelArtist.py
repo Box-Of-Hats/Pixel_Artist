@@ -22,13 +22,15 @@ class PixelArtApp(Frame):
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⊶"
         self.min_pixel_size = 10
-        self.pixel_size = 300/len(self.art.pixels[0]) #Size of pixels on the drawing canvas
+        self.default_canvas_size = 284
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 1.25 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
         self.art_history_length = 5
         self.show_debug_console = False
         self.max_log_length = 10
+        self.left_bg_colour = "#baad82"
+        self.right_bg_colour = "#d6cca9"
 
         #Init variables
         self.last_export_filename = None
@@ -37,6 +39,7 @@ class PixelArtApp(Frame):
         self.previous_file_save = False
         self.show_gridlines = False
         self.enable_drag = False
+        self.pixel_size = self.default_canvas_size/len(self.art.pixels[0])
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -88,9 +91,9 @@ class PixelArtApp(Frame):
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
 
         #Split window into two frames
-        self.left_frame = Frame(self.master, width=150, height=300, background="#97e5b1")
+        self.left_frame = Frame(self.master, width=150, height=300, background=self.left_bg_colour)
         self.left_frame.grid(column=10, row=10, sticky="ns")
-        self.right_frame = Frame(self.master, width=300, height=300, background="#e097e5")
+        self.right_frame = Frame(self.master, width=300, height=300, background=self.right_bg_colour)
         self.right_frame.grid(column=20, row=10,sticky="nsew")
 
         #Create drawing canvas
@@ -108,7 +111,7 @@ class PixelArtApp(Frame):
         colour_buttons_container.grid(row=0, column=0, padx=10, pady=10)
         for colour_index, pc in enumerate([(c, self.art.palette[c]) for c in sorted(self.art.palette)]): #enumerate through the current palette
             #Create button object
-            colour_button = Button(colour_buttons_container, width=2, height=1, relief="flat", background=self.art.palette[colour_index], highlightbackground="#000000")
+            colour_button = Button(colour_buttons_container, width=2, height=1, bd=0, relief="flat", background=self.art.palette[colour_index], highlightbackground="#000000")
             colour_button.grid(column=0, row=colour_index)
             #Bind events to colour button
             colour_button.bind("<Button-1>", lambda event, index=colour_index: self.change_pen_colour(index)) #Left-click = select as pen
@@ -121,7 +124,7 @@ class PixelArtApp(Frame):
         #Create tool selection buttons
         self.selected_tool_id = IntVar(self.master)
         self.selected_tool_id.set(0)
-        tool_buttons_container = Frame(self.left_frame)
+        tool_buttons_container = Frame(self.left_frame, bg=self.left_bg_colour)
         row_no = 0
         for i in range(0, len(self.tools)):
             if i%self.tools_selection_per_row == 0:
@@ -132,7 +135,7 @@ class PixelArtApp(Frame):
                 img=None
             b = Radiobutton(tool_buttons_container, value=i,
                 image=img, text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,
-                indicatoron=0, bd=0)
+                indicatoron=0, bd=0,relief="flat",bg=self.left_bg_colour)
             b.img = img
             b.grid(row=row_no, column=i%self.tools_selection_per_row)
         tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
