@@ -7,6 +7,7 @@ import math
 import random
 import sys
 import os
+import colour
 
 class PixelArtApp(Frame):
     """Window"""
@@ -20,7 +21,7 @@ class PixelArtApp(Frame):
         
         #Options
         self.pen_colour = 0 #Default colour index to use
-        self.colour_select_icon = "⊶"
+        self.colour_select_icon = "⏺"
         self.min_pixel_size = 10
         self.default_canvas_size = 284
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
@@ -111,7 +112,9 @@ class PixelArtApp(Frame):
         colour_buttons_container.grid(row=0, column=0, padx=10, pady=10)
         for colour_index, pc in enumerate([(c, self.art.palette[c]) for c in sorted(self.art.palette)]): #enumerate through the current palette
             #Create button object
-            colour_button = Button(colour_buttons_container, width=2, height=1, bd=0, relief="flat", background=self.art.palette[colour_index], highlightbackground="#000000")
+            colour_button = Button(colour_buttons_container, width=2, height=1, bd=0,
+                                    relief="flat", background=self.art.palette[colour_index],
+                                    highlightbackground="#000000", fg="#000000", font=('Arial' , 8, 'bold'))
             colour_button.grid(column=0, row=colour_index)
             #Bind events to colour button
             colour_button.bind("<Button-1>", lambda event, index=colour_index: self.change_pen_colour(index)) #Left-click = select as pen
@@ -135,7 +138,7 @@ class PixelArtApp(Frame):
                 img=None
             b = Radiobutton(tool_buttons_container, value=i,
                 image=img, text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,
-                indicatoron=0, bd=0,relief="flat",bg=self.left_bg_colour)
+                indicatoron=False, bd=3, relief="flat", offrelief="flat", bg=self.left_bg_colour, fg=self.left_bg_colour)
             b.img = img
             b.grid(row=row_no, column=i%self.tools_selection_per_row)
         tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
@@ -293,7 +296,7 @@ class PixelArtApp(Frame):
     def load_palette_from_file(self, filename=None):
         """Load a palette from a given file"""
         if not filename:
-            filename = fileopenbox(title="Load Palette", default="./*.pxlart")
+            filename = fileopenbox(title="Load Palette", default="./palettes/*.pxlart")
         if filename:
             self.log("Loading from: {}".format(filename))
             self.art.load_palette_from_file(filename)
@@ -306,7 +309,7 @@ class PixelArtApp(Frame):
         Note: Art must be same resolution as current canvas
         """
         if not filename:
-            filename = fileopenbox(title="Load Art", default="./*.pxlart")
+            filename = fileopenbox(title="Load Art", default="./savedArt/*.pxlart")
         if filename and (ignore_warning or ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?")):
             
             self.log("Loading from: {}".format(filename))
@@ -357,6 +360,7 @@ class PixelArtApp(Frame):
             self.colour_buttons[colour_index].config(background=new_colour)
             self.change_pen_colour(colour_index)
             self.update_canvas()
+            self.update_palette_buttons()
         else:
             pass
 
@@ -393,7 +397,15 @@ class PixelArtApp(Frame):
     def update_palette_buttons(self):
         """Update colour of palette buttons to be consistant with the art palette"""
         for colour_index, button in zip(self.art.palette, self.colour_buttons):
-            button.config(background=self.art.palette[colour_index])
+            this_colour = self.art.palette[colour_index]
+            colour_obj = colour.Color(this_colour)
+            colour_obj.green = 1-colour_obj.green
+            colour_obj.red = 1-colour_obj.red
+            colour_obj.blue = 1-colour_obj.blue
+            colour_obj.set_saturation(0.99)
+            text_colour = colour_obj.hex
+            button.config(fg=text_colour)
+            button.config(background=this_colour)
 
     def set_pixel_colour(self, x, y, colour_index):
         """Set the colour of an individual pixel on the drawing canvas"""
@@ -524,16 +536,41 @@ class SaveArtWindow(Toplevel):
         self.preview_label.config(image=self.preview_image)
 
 
-
 def main():
     art_to_load = None
     canvas_size = (8, 8)
+    palette_colours = None
+    #Create required folders if they don't exist:
+    for directory in ["./savedArt", "./exportedArt", "./palettes"]:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print("creating directory: {}".format(directory))
     try:
         if os.path.splitext(sys.argv[1])[1] == ".pxlart":
             try:
                 art_to_load = Art.load_from_file(sys.argv[1])
             except FileNotFoundError:
                 print("Could not find file: {}".format(sys.argv[1]))
+        elif sys.argv[1].lower() == "savepalette":
+            """
+            Save these palette values to a .pxlart file.
+            Usage:
+            python3 PixelArtist.py savePalette OUTPUT_FILENAME LIST_OF_HEX_COLOURS
+            e.g:
+            python3 PixelArtist.py savePalette "test.pxlart" "#170900,#BB00FF,#E87B74,#E8C658,#836FAA,#170900,#BB00FF,#E87B74"
+            """
+            filepath = sys.argv[2]
+            palette_colours =  [c.strip() for c in sys.argv[3].split(",")]
+            art = Art(image_size=(8,8))
+            for y in range(0,8):
+                for x in range(0,8):
+                    art.set_pixel(x,y,y)
+            for index, colour in enumerate(palette_colours):
+                art.palette[index] = colour
+            art.sort_palette()
+            art.save_to_file(filepath)
+
+            quit()
         else:
             try:
                 canvas_size = (int(sys.argv[1]), int(sys.argv[1]))
