@@ -539,7 +539,6 @@ class SaveArtWindow(Toplevel):
 def main():
     art_to_load = None
     canvas_size = (8, 8)
-    palette_colours = None
     #Create required folders if they don't exist:
     for directory in ["./savedArt", "./exportedArt", "./palettes"]:
         if not os.path.exists(directory):
@@ -551,26 +550,6 @@ def main():
                 art_to_load = Art.load_from_file(sys.argv[1])
             except FileNotFoundError:
                 print("Could not find file: {}".format(sys.argv[1]))
-        elif sys.argv[1].lower() == "savepalette":
-            """
-            Save these palette values to a .pxlart file.
-            Usage:
-            python3 PixelArtist.py savePalette OUTPUT_FILENAME LIST_OF_HEX_COLOURS
-            e.g:
-            python3 PixelArtist.py savePalette "test.pxlart" "#170900,#BB00FF,#E87B74,#E8C658,#836FAA,#170900,#BB00FF,#E87B74"
-            """
-            filepath = sys.argv[2]
-            palette_colours =  [c.strip() for c in sys.argv[3].split(",")]
-            art = Art(image_size=(8,8))
-            for y in range(0,8):
-                for x in range(0,8):
-                    art.set_pixel(x,y,y)
-            for index, colour in enumerate(palette_colours):
-                art.palette[index] = colour
-            art.sort_palette()
-            art.save_to_file(filepath)
-
-            quit()
         else:
             try:
                 canvas_size = (int(sys.argv[1]), int(sys.argv[1]))
