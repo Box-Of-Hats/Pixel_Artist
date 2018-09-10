@@ -23,7 +23,7 @@ class PixelArtApp(Frame):
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⏺"
         self.min_pixel_size = 10
-        self.default_canvas_size = 284
+        self.default_canvas_size = 340
         self.preview_image_scalar = (3,3) #The multiplier scale that the art preview image should display as
         self.zoom_change_amount = 1.25 #The amount of pixels to increase/decrease pixel size by
         self.tools_selection_per_row = 3
@@ -32,14 +32,40 @@ class PixelArtApp(Frame):
         self.max_log_length = 10
         self.left_bg_colour = "#baad82"
         self.right_bg_colour = "#d6cca9"
+
         self.menu_styling = {
-            "bg": "#d1e072",
+            "bg": self.left_bg_colour,
             "fg":  "#5b5b3f",
             "bd": 2,
             "relief": "flat",
             "activebackground": "#eeaa38",
             "activeborderwidth":0,
             "font": ("comfortaa", 8, "bold"),
+        }
+        self.tool_button_styling = {
+            "indicatoron": False,
+            "bd": 0,
+            "highlightbackground": self.left_bg_colour,
+            "highlightcolor": "#d1e072",
+            "activeforeground":  "#eeaa38",
+            "activebackground":  "#eeaa38",
+            "selectcolor": "#d1e072",
+            "relief": "flat",
+            "offrelief": "flat",
+            "bg": self.left_bg_colour,
+            "fg": self.left_bg_colour,
+        }
+        self.palette_button_styling = {
+            "width": 8,
+            "height": 2,
+            "bd": 0,
+            "relief": "flat",
+            "highlightbackground": "#000000",
+            "highlightthickness": 0,
+            "highlightcolor": "#000000",
+            "fg": "#000000",
+            "font": ('Arial' , 8, 'bold'),
+            "image": None,
         }
 
         #Init variables
@@ -66,7 +92,6 @@ class PixelArtApp(Frame):
         self.master.geometry('+{}+{}'.format(int(self.master.winfo_screenwidth()/2)-100, int(self.master.winfo_screenheight()/2)-200))
         self.master.resizable(0, 0)
         self.master.option_add('*tearOff', False)
-        self.master.config()
 
         #Create menu bar
         self.menu_bar = Menu(self.master)
@@ -109,9 +134,9 @@ class PixelArtApp(Frame):
             menu.config(self.menu_styling)
 
         #Split window into two frames
-        self.left_frame = Frame(self.master, width=150, height=300, background=self.left_bg_colour)
+        self.left_frame = Frame(self.master, width=150, height=380, background=self.left_bg_colour)
         self.left_frame.grid(column=10, row=10, sticky="ns")
-        self.right_frame = Frame(self.master, width=300, height=300, background=self.right_bg_colour)
+        self.right_frame = Frame(self.master, width=300, height=380, background=self.right_bg_colour)
         self.right_frame.grid(column=20, row=10,sticky="nsew")
 
         #Create drawing canvas
@@ -121,18 +146,17 @@ class PixelArtApp(Frame):
 
         #Preview Label
         self.preview_label = Label(self.right_frame, image=self.preview_image)
-        self.preview_label.grid(column=10, row=0)
+        self.preview_label.grid(column=10, row=0, padx=6, pady=6)
 
-        #Create palete buttons
+        #Create palette buttons
         self.colour_buttons = []
         colour_buttons_container = Frame(self.left_frame)
-        colour_buttons_container.grid(row=0, column=0, padx=10, pady=10)
+        colour_buttons_container.grid(row=0, column=0, padx=6, pady=6)
         for colour_index, pc in enumerate([(c, self.art.palette[c]) for c in sorted(self.art.palette)]): #enumerate through the current palette
             #Create button object
-            colour_button = Button(colour_buttons_container, width=2, height=1, bd=0,
-                                    relief="flat", background=self.art.palette[colour_index],
-                                    highlightbackground="#000000", fg="#000000", font=('Arial' , 8, 'bold'))
+            colour_button = Button(colour_buttons_container)
             colour_button.grid(column=0, row=colour_index)
+            colour_button.config(self.palette_button_styling)
             #Bind events to colour button
             colour_button.bind("<Button-1>", lambda event, index=colour_index: self.change_pen_colour(index)) #Left-click = select as pen
             colour_button.bind("<Button-3>", lambda event, index=colour_index: self.change_palette_colour(index)) #Right-click=change palette colour
@@ -153,10 +177,10 @@ class PixelArtApp(Frame):
                 img = PhotoImage(file=self.tool_icons[i])
             except TclError:
                 img=None
-            b = Radiobutton(tool_buttons_container, value=i,
-                image=img, text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id,
-                indicatoron=False, bd=3, relief="flat", offrelief="flat", bg=self.left_bg_colour, fg=self.left_bg_colour)
+            b = Radiobutton(tool_buttons_container, value=i, background=self.art.palette[colour_index],
+                image=img, text="{}".format(self.tool_icons[i]) , variable=self.selected_tool_id)
             b.img = img
+            b.config(self.tool_button_styling)
             b.grid(row=row_no, column=i%self.tools_selection_per_row)
         tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
 
@@ -528,11 +552,13 @@ class SaveArtWindow(Toplevel):
         self.white_as_transparent_btn.grid(row=10, column=0, sticky="nw")
 
         image_format_container = Frame(self.main_frame)
-        self.image_format = StringVar()
-        self.image_format_select = Listbox(image_format_container, height=1)
-        self.image_format_select.insert(0, "JPG")
-        self.image_format_select.insert(0, "PNG")
+        #self.image_format = StringVar()
+        self.image_format_select = Listbox(image_format_container, height=3, selectmode=SINGLE)
+        self.image_format_select.insert(0, "gif")
+        self.image_format_select.insert(0, "jpg")
+        self.image_format_select.insert(0, "png")
         self.image_format_select.grid(row=0, column=1)
+        self.image_format_select.select_set(0)
         Label(image_format_container, text="Format").grid(row=0, column=0)
         image_format_container.grid(row=12, column=0, sticky="nw")
 
@@ -542,9 +568,9 @@ class SaveArtWindow(Toplevel):
 
     def save_art(self):
         scale = int(self.scale_input.get())
-        image_format = self.image_format.get()
+        image_format= self.image_format_select.get(self.image_format_select.curselection()).lower()
 
-        filename = filesavebox(title="Export art...", default="./*.png")
+        filename = filesavebox(title="Export art...", default="./*.{}".format(image_format))
         if filename:
             if self.white_as_transparent.get() == 1:
                 transparent_option = 0
