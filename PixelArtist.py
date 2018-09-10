@@ -32,6 +32,15 @@ class PixelArtApp(Frame):
         self.max_log_length = 10
         self.left_bg_colour = "#baad82"
         self.right_bg_colour = "#d6cca9"
+        self.menu_styling = {
+            "bg": "#d1e072",
+            "fg":  "#5b5b3f",
+            "bd": 2,
+            "relief": "flat",
+            "activebackground": "#eeaa38",
+            "activeborderwidth":0,
+            "font": ("comfortaa", 8, "bold"),
+        }
 
         #Init variables
         self.last_export_filename = None
@@ -57,7 +66,7 @@ class PixelArtApp(Frame):
         self.master.geometry('+{}+{}'.format(int(self.master.winfo_screenwidth()/2)-100, int(self.master.winfo_screenheight()/2)-200))
         self.master.resizable(0, 0)
         self.master.option_add('*tearOff', False)
-        self.master.config(bg="#FF00FF")
+        self.master.config()
 
         #Create menu bar
         self.menu_bar = Menu(self.master)
@@ -88,13 +97,16 @@ class PixelArtApp(Frame):
         self.palette_menu.add_command(label='Sort Palette', command=lambda:self.sort_palette(), accelerator="")
         self.menu_bar.add_cascade(label='Palette', menu=self.palette_menu)
         #Add Options section to menu bar
-        options_menu = Menu(self.menu_bar)
-        options_menu.add_checkbutton(label='Gridlines', command=self._toggle_canvas_grid, accelerator='')
-        options_menu.add_checkbutton(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
-        options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
-        options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
-        options_menu.add_checkbutton(label='Show/Hide Debug Console', command=lambda: self.toggle_show_console(), accelerator='F12')
-        self.menu_bar.add_cascade(label='Options', menu=options_menu)
+        self.options_menu = Menu(self.menu_bar)
+        self.options_menu.add_checkbutton(label='Gridlines', command=self._toggle_canvas_grid, accelerator='')
+        self.options_menu.add_checkbutton(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
+        self.options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
+        self.options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
+        self.options_menu.add_checkbutton(label='Show/Hide Debug Console', command=lambda: self.toggle_show_console(), accelerator='F12')
+        self.menu_bar.add_cascade(label='Options', menu=self.options_menu)
+
+        for menu in [self.menu_bar, self.file_menu, self.edit_menu, self.palette_menu, self.options_menu]:
+            menu.config(self.menu_styling)
 
         #Split window into two frames
         self.left_frame = Frame(self.master, width=150, height=300, background=self.left_bg_colour)
