@@ -1,7 +1,7 @@
 from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
 from tkinter import *
 from tkinter.colorchooser import *
-from easygui import filesavebox, fileopenbox, ccbox
+from easygui import filesavebox, fileopenbox, ccbox, enterbox
 from PIL import Image, ImageDraw
 import math
 import random
@@ -70,8 +70,6 @@ class PixelArtApp(Frame):
         self.file_menu.add_command(label='Export as last Image (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='') 
-        self.file_menu.add_command(label='Load Palette', command=lambda: self.load_palette_from_file(), accelerator='')
-        self.file_menu.add_command(label='Random Palette', command=lambda: self.randomise_palette(), accelerator='Ctrl+Shift+R')
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Clear Canvas', command=lambda: self.clear_canvas(ask_confirm=True), accelerator="Ctrl+Shift+D")
         self.file_menu.add_separator()
@@ -80,15 +78,22 @@ class PixelArtApp(Frame):
         #Add Edit section to menu bar
         self.edit_menu = Menu(self.menu_bar)
         self.edit_menu.add_command(label='Undo', command=lambda:self.undo(), accelerator="Ctrl+Z")
-        self.edit_menu.add_command(label='Sort Palette', command=lambda:self.sort_palette(), accelerator="")
         self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
+        #Add Palette section to menu bar
+        self.palette_menu = Menu(self.menu_bar)
+        self.palette_menu.add_command(label='Load from file', command=lambda: self.load_palette_from_file(), accelerator='')
+        self.palette_menu.add_command(label='Load from URL', command=lambda: self.load_palette_from_url(), accelerator="")
+        self.palette_menu.add_command(label='Random Palette', command=lambda: self.randomise_palette(), accelerator='Ctrl+Shift+R')
+        self.palette_menu.add_separator()
+        self.palette_menu.add_command(label='Sort Palette', command=lambda:self.sort_palette(), accelerator="")
+        self.menu_bar.add_cascade(label='Palette', menu=self.palette_menu)
         #Add Options section to menu bar
         options_menu = Menu(self.menu_bar)
-        options_menu.add_command(label='Toggle gridlines', command=self._toggle_canvas_grid, accelerator='')
-        options_menu.add_command(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
+        options_menu.add_checkbutton(label='Gridlines', command=self._toggle_canvas_grid, accelerator='')
+        options_menu.add_checkbutton(label='Toggle Drag', command=lambda: self.toggle_allow_drag(), accelerator='Ctrl+M')
         options_menu.add_command(label='Zoom in', command=lambda: self._set_pixel_size(self.zoom_change_amount), accelerator='Ctrl+')
         options_menu.add_command(label='Zoom out', command=lambda: self._set_pixel_size(-self.zoom_change_amount), accelerator='Ctrl-')
-        options_menu.add_command(label='Show/Hide Debug Console', command=lambda: self.toggle_show_console(), accelerator='F12')
+        options_menu.add_checkbutton(label='Show/Hide Debug Console', command=lambda: self.toggle_show_console(), accelerator='F12')
         self.menu_bar.add_cascade(label='Options', menu=options_menu)
 
         #Split window into two frames
@@ -178,6 +183,17 @@ class PixelArtApp(Frame):
         # and that the art is in-sync.
         self.update_canvas()
         self.update_palette_buttons()
+
+    def load_palette_from_url(self, url=None):
+        if not url:
+            url = enterbox("Enter a URL", "Load from URL", strip=True)
+        if url:
+            if self.art.load_palette_from_url(url):
+                self.log("Loading from URL: {}".format(url))
+                self.update_palette_buttons()
+                self.update_canvas()
+            else:
+                self.log("Unsupported URL: {}".format(url))
 
     def _generate_drawing_canvas(self, parent):
         """Generate a drawing canvas object"""

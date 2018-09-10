@@ -2,7 +2,10 @@ import copy
 import imageio
 import os
 import math
+import requests
+from lxml import html
 import colorsys
+from urllib.parse import urlparse
 #For image exporting
 from PIL import Image, ImageDraw
 
@@ -91,7 +94,8 @@ class Art():
         """
         format_colour_modes = {
             ".jpg": "RGB",
-            ".png": "RGBA"
+            ".png": "RGBA",
+            ".gif": "RGB"
         }
         
         colour_mode = format_colour_modes[os.path.splitext(filename)[1]]
@@ -161,6 +165,27 @@ class Art():
         """Get a new instance of this art object"""
         new_pixels = copy.deepcopy(self.pixels)
         return Art(self.palette, self.image_size, new_pixels )
+
+    def load_palette_from_url(self, url):
+        """
+        Get a palette from a url.
+        e.g colourlovers : "http://www.colourlovers.com/palette/49963/let_them_eat_cake"
+        """
+        r = requests.get(url)
+        tree = html.fromstring(r.content)
+        print("loading from: {}".format(url))
+
+        if "www.colourlovers.com" == urlparse(url).hostname:
+            print("Colour lovers...")
+            theme_input = tree.xpath('/html/body/div[3]/div/div[2]/div[3]/input[2]')
+            palette_colours = [c.strip() for c in theme_input[0].value.split(",")]
+            for index, colour in enumerate(palette_colours):
+                self.palette[index] = colour
+                print(colour)
+            self.sort_palette()
+            return True
+        else:
+            return False
 
 
 class Animation():
@@ -286,26 +311,8 @@ class PartialBucket(Tool):
 
 def main():
     a = Art(image_size=(5,5))
-    for x in a.pixels:
-        print(x)
-    print()
-    p = Pencil()
-    for x in range(0,5):
-        p.activate((x,3), a.pixels, 1)
-
-    for x in a.pixels:
-        print(x)
-
-    print(p._get_neighbouring_locations((0,0), a.pixels))
-    print(p._get_neighbouring_locations((1,1), a.pixels))
-    print(p._get_neighbouring_locations((15,15), a.pixels))
-    print(p._get_neighbouring_locations((1,15), a.pixels))
-
-    b = Bucket()
-    b.activate((2,0), a.pixels, 4)
-
-    for x in a.pixels:
-        print(x)
+    a.load_palette_from_url("http://www.colourlovers.com/palette/49963/let_them_eat_cake")
+    #a.save_to_file("CAKE.pxlart")
 
 
 if __name__ == "__main__":
