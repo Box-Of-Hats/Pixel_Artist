@@ -1,5 +1,4 @@
 import copy
-import imageio
 import os
 import math
 import requests
@@ -186,26 +185,6 @@ class Art():
             return True
         else:
             return False
-
-
-class Animation():
-    def __init__(self, frame_list):
-        self.frames = frame_list
-        self.current_frame = None
-
-    def get_next_frame(self):
-        if self.current_frame == None:
-            self.current_frame = 0
-        else:
-            self.current_frame = (self.current_frame+1)% len(self.frames)
-        return self.frames[self.current_frame]
-
-    def export_as_gif(self, fname):
-        images = []
-        for filename in self.frames:
-            images.append(imageio.imread(filename))
-        imageio.mimsave(fname, images)
-
 
 class Tool():
     def __init__(self):

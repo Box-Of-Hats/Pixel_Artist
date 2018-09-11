@@ -1,4 +1,5 @@
-from Art import Art, Animation, Pencil, Bucket, PartialBucket, MirroredPencil
+from Art import Art, Pencil, Bucket, PartialBucket, MirroredPencil
+from Animation import Animation
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox, enterbox
@@ -32,6 +33,7 @@ class PixelArtApp(Frame):
         self.max_log_length = 10
         self.left_bg_colour = "#baad82"
         self.right_bg_colour = "#d6cca9"
+        self.number_of_anim_frames = 4
 
         self.menu_styling = {
             "bg": self.left_bg_colour,
@@ -76,6 +78,8 @@ class PixelArtApp(Frame):
         self.show_gridlines = False
         self.enable_drag = False
         self.pixel_size = self.default_canvas_size/len(self.art.pixels[0])
+        self.animation = Animation([None for fn in range(0, self.number_of_anim_frames)])
+        self.animation_frames = [None for fn in range(0, self.number_of_anim_frames)]
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -188,8 +192,55 @@ class PixelArtApp(Frame):
         self.bottom_frame.grid(row=50, column=0, columnspan=100, sticky="nsew")
         self.output_console = Listbox(self.bottom_frame, height=4, width=30, borderwidth=0, highlightcolor="#000000",
                                         relief=FLAT, bg="#000000", fg="#FFFFFF")
+    
         if self.show_debug_console:
             self.output_console.pack(expand=True, fill=BOTH)
+
+        self.animation_container = Frame(self.bottom_frame, bg="#FF0000")
+        self.animation_container.pack(expand=True, fill=BOTH)
+
+        self.animation_preview = Label(self.animation_container, text="PRV")
+        self.animation_preview.grid(row=0, column=0, padx=(0, 4))
+
+        def play_anim_preview(counter=0):
+            #fname = "resources/temp/temp_anim.gif"
+            #self.animation.export_as_gif(fname)
+            counter -= 1
+
+            img = PhotoImage(file=self.animation.get_next_frame())
+
+            self.animation_preview.config(image=img)
+            self.animation_preview.img = img
+            self.animation_preview.after(200, lambda: play_anim_preview(counter))
+            
+
+
+
+        self.animation_preview.bind("<Button-1>", lambda e: play_anim_preview(10))
+
+
+        for i in range(0, self.number_of_anim_frames):
+            def b_click(e, fno):
+                self.log("Setting frame {}".format(fno))
+                fname = "resources/temp/{}.png".format(fno)
+                self.art.export_to_image_file(filename=fname)
+                img = PhotoImage(file=fname)
+                e.widget.config(image=img)
+                e.widget.img = img
+                self.animation.frames[fno] = fname
+                self.animation_frames[fno] = self.art.copy()
+            
+            def b_rclick(e, fno):
+                self.log("Setting art to frame {}".format(fno))
+                self.art = self.animation.frames[fno].copy()
+                self.update_canvas()
+                self.update_preview_image()
+
+            b = Button(self.animation_container, image=None)
+            b.bind("<Button-1>",lambda e, fno=i: b_click(e, fno))
+            b.bind("<Button-3>",lambda e, fno=i: b_rclick(e, fno))
+            b.grid(row=0, column=i+1)
+
 
         #Keybindings
         #Zoom in (ctrl +)
@@ -594,7 +645,7 @@ def main():
     art_to_load = None
     canvas_size = (8, 8)
     #Create required folders if they don't exist:
-    for directory in ["./savedArt", "./exportedArt", "./palettes"]:
+    for directory in ["./savedArt", "./exportedArt", "./palettes", "./resources/temp"]:
         if not os.path.exists(directory):
             os.makedirs(directory)
             print("creating directory: {}".format(directory))
