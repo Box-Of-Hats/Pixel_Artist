@@ -33,7 +33,6 @@ class PixelArtApp(Frame):
         self.max_log_length = 10
         self.left_bg_colour = "#baad82"
         self.right_bg_colour = "#d6cca9"
-        self.number_of_anim_frames = 4
 
         self.menu_styling = {
             "bg": self.left_bg_colour,
@@ -78,8 +77,11 @@ class PixelArtApp(Frame):
         self.show_gridlines = False
         self.enable_drag = False
         self.pixel_size = self.default_canvas_size/len(self.art.pixels[0])
-        self.animation = Animation([None for fn in range(0, self.number_of_anim_frames)])
-        self.animation_frames = [None for fn in range(0, self.number_of_anim_frames)]
+        self.animation = Animation([])
+        self.animation_frames = []
+        self.play_image = PhotoImage(file="resources/play.png")
+        self.edit_image = PhotoImage(file="resources/edit.png")
+        self.add_image = PhotoImage(file="resources/add.png")
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -188,6 +190,7 @@ class PixelArtApp(Frame):
             b.grid(row=row_no, column=i%self.tools_selection_per_row)
         tool_buttons_container.grid(row=5, column=0, padx=5, pady=5)
 
+        #Bottom frame with debug console
         self.bottom_frame = Frame(self.master)
         self.bottom_frame.grid(row=50, column=0, columnspan=100, sticky="nsew")
         self.output_console = Listbox(self.bottom_frame, height=4, width=30, borderwidth=0, highlightcolor="#000000",
@@ -196,50 +199,60 @@ class PixelArtApp(Frame):
         if self.show_debug_console:
             self.output_console.pack(expand=True, fill=BOTH)
 
-        self.animation_container = Frame(self.bottom_frame, bg="#FF0000")
-        self.animation_container.pack(expand=True, fill=BOTH)
 
-        self.animation_preview = Label(self.animation_container, text="PRV")
-        self.animation_preview.grid(row=0, column=0, padx=(0, 4))
-
-        def play_anim_preview(counter=0):
-            #fname = "resources/temp/temp_anim.gif"
-            #self.animation.export_as_gif(fname)
-            counter -= 1
-
-            img = PhotoImage(file=self.animation.get_next_frame())
-
-            self.animation_preview.config(image=img)
-            self.animation_preview.img = img
-            self.animation_preview.after(200, lambda: play_anim_preview(counter))
-            
-
-
-
-        self.animation_preview.bind("<Button-1>", lambda e: play_anim_preview(10))
-
-
-        for i in range(0, self.number_of_anim_frames):
-            def b_click(e, fno):
+        #Animation Frame
+        def generate_frame_button():
+            def load_canvas_to_frame(preview_label, fno):
                 self.log("Setting frame {}".format(fno))
                 fname = "resources/temp/{}.png".format(fno)
-                self.art.export_to_image_file(filename=fname)
+                self.art.export_to_image_file(filename=fname, scalar=5)
                 img = PhotoImage(file=fname)
-                e.widget.config(image=img)
-                e.widget.img = img
-                self.animation.frames[fno] = fname
-                self.animation_frames[fno] = self.art.copy()
+                preview_label.config(image=img)
+                preview_label.img = img
+                try:
+                    self.animation.frames[fno] = fname
+                    self.animation_frames[fno] = self.art.copy()
+                except IndexError:
+                    self.animation.frames.append(fname)
+                    self.animation_frames.append(self.art.copy())
             
-            def b_rclick(e, fno):
+            def load_art_to_canvas(fno):
                 self.log("Setting art to frame {}".format(fno))
-                self.art = self.animation.frames[fno].copy()
+                self.art = self.animation_frames[fno].copy()
                 self.update_canvas()
                 self.update_preview_image()
 
-            b = Button(self.animation_container, image=None)
-            b.bind("<Button-1>",lambda e, fno=i: b_click(e, fno))
-            b.bind("<Button-3>",lambda e, fno=i: b_rclick(e, fno))
-            b.grid(row=0, column=i+1)
+            fno = len(self.animation_frames)
+
+            this_frame_container = Frame(self.animation_container)
+            this_frame_container.grid(row=0, column=fno+1)
+            preview_label = Label(this_frame_container)
+            preview_label.grid(row=0, column=0, columnspan=2)
+
+            add_button = Button(this_frame_container, image=self.add_image)
+            add_button.bind("<Button-1>", lambda e, fno=fno: load_canvas_to_frame(preview_label, fno))
+            add_button.grid(row=5, column=0)
+            edit_button = Button(this_frame_container, image=self.edit_image)
+            edit_button.bind("<Button-1>", lambda e, fno=fno: load_art_to_canvas(fno))
+            edit_button.grid(row=5, column=1)
+            load_canvas_to_frame(preview_label, fno)
+
+
+        self.animation_container = Frame(self.bottom_frame, bg="#FF0000")
+        self.animation_container.pack(expand=True, fill=BOTH)
+
+        animation_preview_container = Frame(self.animation_container)
+        animation_preview_container.grid(row=0,column=0, sticky="nesw", padx=(0, 4))
+        self.animation_preview = Label(animation_preview_container, text="PRV")
+        self.animation_preview.grid(row=0, column=0, columnspan=2, sticky="nw")            
+
+        play_button = Button(animation_preview_container, image=self.play_image)
+        play_button.bind("<Button-1>", lambda e: self.play_animation_preview(len(self.animation_frames)*3))
+        play_button.grid(row=5, column=0)
+
+        add_frame_button = Button(animation_preview_container, image=self.add_image)
+        add_frame_button.bind("<Button-1>", lambda e: generate_frame_button())
+        add_frame_button.grid(row=5, column=1)
 
 
         #Keybindings
@@ -270,6 +283,17 @@ class PixelArtApp(Frame):
         # and that the art is in-sync.
         self.update_canvas()
         self.update_palette_buttons()
+
+    def play_animation_preview(self, counter=0):
+        """
+        Display the animation preview as an animation
+        """
+        counter -= 1
+        if counter >= 0:
+            img = PhotoImage(file=self.animation.get_next_frame())
+            self.animation_preview.config(image=img)
+            self.animation_preview.img = img
+            self.animation_preview.after(200, lambda c=counter: self.play_animation_preview(c))
 
     def load_palette_from_url(self, url=None):
         if not url:
