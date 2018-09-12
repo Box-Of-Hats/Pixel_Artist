@@ -2,11 +2,13 @@ import copy
 import os
 import math
 import requests
-from lxml import html
+#from lxml import html
 import colorsys
 from urllib.parse import urlparse
 #For image exporting
 from PIL import Image, ImageDraw
+import json
+from bs4 import BeautifulSoup
 
 class Art():
     """Contains palette and pixel data"""
@@ -168,23 +170,70 @@ class Art():
     def load_palette_from_url(self, url):
         """
         Get a palette from a url.
-        e.g colourlovers : "http://www.colourlovers.com/palette/49963/let_them_eat_cake"
         """
-        r = requests.get(url)
-        tree = html.fromstring(r.content)
         print("loading from: {}".format(url))
+        pl = PaletteLoader()
 
-        if "www.colourlovers.com" == urlparse(url).hostname:
-            print("Colour lovers...")
-            theme_input = tree.xpath('/html/body/div[3]/div/div[2]/div[3]/input[2]')
-            palette_colours = [c.strip() for c in theme_input[0].value.split(",")]
-            for index, colour in enumerate(palette_colours):
-                self.palette[index] = colour
-                print(colour)
-            self.sort_palette()
-            return True
+        for site in pl.supported_sites:
+            if site in url:
+                new_palette = pl.supported_sites[site](url)
+                for index in new_palette:
+                    print("Loading {} into index {}".format(new_palette[index], index))
+                    self.palette[index] = new_palette[index]
+                return True
         else:
+            print("Unsupported URL: {}".format(url))
+            print("Supported sites: {}".format([s for s in pl.supported_sites]))
             return False
+
+class PaletteLoader():
+    def __init__(self):
+        self.supported_sites = {
+            "colormind.io": lambda url: self.load_random_from_colormind(),
+            "colourlovers.com": lambda url: self.load_from_colourlovers(url),
+            "color-hex.com": lambda url: self.load_from_color_hex(url),
+        }
+
+    def load_random_from_colormind(self):
+        """
+        Load a random palette from colormind.io using the API
+        """
+        palette = {}
+        headers = '{"model": "default"}'
+        r = requests.get("http://colormind.io/api/", data=headers)
+
+        if r.status_code == 200:
+            for index, rgb in enumerate(r.json()['result']):
+                palette[index] = Art().rgb_colour_to_html(*rgb)
+                print(index,rgb)
+        else:
+            print("Failed api call: {} - {}".format(r, r.status_code))
+
+        return palette
+
+    
+    def load_from_colourlovers(self, url):
+        """e.g colourlovers : "http://www.colourlovers.com/palette/49963/let_them_eat_cake" """
+        palette = {}
+        api_url = "{}/{}".format(url.replace("/palette","/api/palette"), "/?format=json")
+        r = requests.get(api_url)
+        if r.status_code == 200:
+            for index, colour in enumerate(r.json()[0]["colors"]):
+                palette[index] = "#{}".format(colour)
+
+        return palette
+
+    def load_from_color_hex(self, url):
+        """
+        e.g https://www.color-hex.com/color-palette/65513
+        """
+        palette = {}
+        r = requests.get(url)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "lxml")
+            for index, palette_div in enumerate(soup.find_all("div", attrs={'class': 'palettecolordivc'})):
+                palette[index] = palette_div["title"]
+        return palette
 
 class Tool():
     def __init__(self):

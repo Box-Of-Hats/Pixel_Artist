@@ -77,11 +77,14 @@ class PixelArtApp(Frame):
         self.show_gridlines = False
         self.enable_drag = False
         self.pixel_size = self.default_canvas_size/len(self.art.pixels[0])
+        """
+        #Animation vars
         self.animation = Animation([])
         self.animation_frames = []
         self.play_image = PhotoImage(file="resources/play.png")
         self.edit_image = PhotoImage(file="resources/edit.png")
         self.add_image = PhotoImage(file="resources/add.png")
+        """
 
         #Init tools
         self.tools = [Pencil(), Bucket(), PartialBucket(),
@@ -108,6 +111,7 @@ class PixelArtApp(Frame):
         self.file_menu.add_command(label='Save As...', command=lambda: self._save_to_file(), accelerator='Ctrl+Shift+S')
         self.file_menu.add_command(label='Export as Image', command= self.export_as_image_file, accelerator='')
         self.file_menu.add_command(label='Export as last Image (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
+        #self.file_menu.add_command(label="Export animation as GIF", command= lambda: self.animation.export_as_gif(filesavebox())) #Animation
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='') 
         self.file_menu.add_separator()
@@ -199,7 +203,7 @@ class PixelArtApp(Frame):
         if self.show_debug_console:
             self.output_console.pack(expand=True, fill=BOTH)
 
-
+        """
         #Animation Frame
         def generate_frame_button():
             def load_canvas_to_frame(preview_label, fno):
@@ -253,6 +257,7 @@ class PixelArtApp(Frame):
         add_frame_button = Button(animation_preview_container, image=self.add_image)
         add_frame_button.bind("<Button-1>", lambda e: generate_frame_button())
         add_frame_button.grid(row=5, column=1)
+        """
 
 
         #Keybindings
@@ -284,16 +289,16 @@ class PixelArtApp(Frame):
         self.update_canvas()
         self.update_palette_buttons()
 
+    """
     def play_animation_preview(self, counter=0):
-        """
-        Display the animation preview as an animation
-        """
+        #Display the animation preview as an animation
         counter -= 1
         if counter >= 0:
             img = PhotoImage(file=self.animation.get_next_frame())
             self.animation_preview.config(image=img)
             self.animation_preview.img = img
-            self.animation_preview.after(200, lambda c=counter: self.play_animation_preview(c))
+            self.animation_preview.after(100, lambda c=counter: self.play_animation_preview(c))
+    """
 
     def load_palette_from_url(self, url=None):
         if not url:
