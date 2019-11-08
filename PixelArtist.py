@@ -1,5 +1,5 @@
 from Art import Art, Pencil, Bucket, PartialBucket, MirroredPencil
-from Animation import Animation
+#from Animation import Animation
 from tkinter import *
 from tkinter.colorchooser import *
 from easygui import filesavebox, fileopenbox, ccbox, enterbox
@@ -19,7 +19,7 @@ class PixelArtApp(Frame):
             self.art = art
         else:
             self.art = Art(image_size=canvas_size)
-        
+
         #Options
         self.pen_colour = 0 #Default colour index to use
         self.colour_select_icon = "⏺"
@@ -94,7 +94,7 @@ class PixelArtApp(Frame):
                            "resources/penY.png", "resources/penXY.png"]
 
         self.init_window()
-    
+
     def init_window(self):
         """Initialise the window"""
         self.master.title('Pixel Artist')
@@ -113,7 +113,7 @@ class PixelArtApp(Frame):
         self.file_menu.add_command(label='Export as last Image (Overwrite {})'.format(self.last_export_filename), command= lambda: self.export_as_image_file(filename=self.last_export_filename), accelerator='', state="disabled")
         #self.file_menu.add_command(label="Export animation as GIF", command= lambda: self.animation.export_as_gif(filesavebox())) #Animation
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='') 
+        self.file_menu.add_command(label='Load', command=lambda: self.load_art_from_file(), accelerator='')
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Clear Canvas', command=lambda: self.clear_canvas(ask_confirm=True), accelerator="Ctrl+Shift+D")
         self.file_menu.add_separator()
@@ -199,7 +199,7 @@ class PixelArtApp(Frame):
         self.bottom_frame.grid(row=50, column=0, columnspan=100, sticky="nsew")
         self.output_console = Listbox(self.bottom_frame, height=4, width=30, borderwidth=0, highlightcolor="#000000",
                                         relief=FLAT, bg="#000000", fg="#FFFFFF")
-    
+
         if self.show_debug_console:
             self.output_console.pack(expand=True, fill=BOTH)
 
@@ -219,7 +219,7 @@ class PixelArtApp(Frame):
                 except IndexError:
                     self.animation.frames.append(fname)
                     self.animation_frames.append(self.art.copy())
-            
+
             def load_art_to_canvas(fno):
                 self.log("Setting art to frame {}".format(fno))
                 self.art = self.animation_frames[fno].copy()
@@ -248,7 +248,7 @@ class PixelArtApp(Frame):
         animation_preview_container = Frame(self.animation_container)
         animation_preview_container.grid(row=0,column=0, sticky="nesw", padx=(0, 4))
         self.animation_preview = Label(animation_preview_container, text="PRV")
-        self.animation_preview.grid(row=0, column=0, columnspan=2, sticky="nw")            
+        self.animation_preview.grid(row=0, column=0, columnspan=2, sticky="nw")
 
         play_button = Button(animation_preview_container, image=self.play_image)
         play_button.bind("<Button-1>", lambda e: self.play_animation_preview(len(self.animation_frames)*3))
@@ -351,7 +351,7 @@ class PixelArtApp(Frame):
             if cur != self.prev:
                 self.prev = cur
                 self.activate_tool((math.floor(e.x/self.pixel_size), math.floor(e.y/self.pixel_size)),draw_all=False)
-        
+
         self.enable_drag = not self.enable_drag
 
         if self.enable_drag:
@@ -370,13 +370,13 @@ class PixelArtApp(Frame):
                 self.drawing_canvas.create_line(grid_index*self.pixel_size, 0,
                                                 grid_index*self.pixel_size, self.pixel_size*len(self.art.pixels[0]),
                                                 tags="gridline")
-                self.drawing_canvas.create_line(0, grid_index*self.pixel_size, 
+                self.drawing_canvas.create_line(0, grid_index*self.pixel_size,
                                                 self.pixel_size*len(self.art.pixels[0]), grid_index*self.pixel_size,
                                             tags="gridline")
         else:
             self.log("Hide Gridlines")
             self.drawing_canvas.delete("gridline")
-    
+
     def _set_pixel_size(self, scale):
         """Update size of pixels to be a new value."""
         if scale < 0:
@@ -443,7 +443,7 @@ class PixelArtApp(Frame):
         if not filename:
             filename = fileopenbox(title="Load Art", default="./savedArt/*.pxlart")
         if filename and (ignore_warning or ccbox("Are you sure you want to load {}?\nYou will lose your current artwork".format(filename), "Load art from file?")):
-            
+
             self.log("Loading from: {}".format(filename))
             self.art = Art.load_from_file(filename)
 
@@ -544,7 +544,7 @@ class PixelArtApp(Frame):
         self.art.set_pixel(x, y, colour_index)
         colour_value = self.art.palette[colour_index]
         self.canvas_pixels[x][y].config(background=colour_value)
-    
+
     def activate_tool(self, location, draw_all=True):
         """
         Activate a the currently selected drawing tool at a given location.
@@ -565,7 +565,7 @@ class PixelArtApp(Frame):
             self.update_canvas()
         else:
             self.update_canvas(clear_canvas=False, selected_pixels=[(location)])
-        
+
     def undo(self):
         """Return to the previous art state"""
         try:
@@ -575,7 +575,7 @@ class PixelArtApp(Frame):
             self.log("Undoing")
         except IndexError:
             self.log("Reached undo limit: {}".format(self.art_history_length))
-    
+
     def log(self, output):
         """Output a string to the debug console"""
         print(output)
@@ -583,7 +583,7 @@ class PixelArtApp(Frame):
         while self.output_console.size() > self.max_log_length:
             self.output_console.delete(0)
         self.output_console.see(END)
-    
+
     def _on_window_resize(self, event):
         """Window was resized"""
         pass
@@ -617,7 +617,7 @@ class SaveArtWindow(Toplevel):
         self.master.grab_set()
 
         self.preview_image = PhotoImage(file="resources/temp.png").zoom(6)
-        
+
         self.preview_label = Label(self.main_frame, image=self.preview_image)
         self.preview_label.grid(row=30, column=0)
 
@@ -662,7 +662,7 @@ class SaveArtWindow(Toplevel):
             #self.last_export_filename = filename
             #self.file_menu.entryconfig(3, label = "Export to... {}".format(self.last_export_filename))
             #self.file_menu.entryconfig(3, state="normal")
-    
+
     def _update_preview_image(self):
         scale = int(self.scale_input.get())
         print("Updating preview {}".format(scale))
@@ -692,7 +692,7 @@ def main():
 
     except ValueError:
         print("Using default canvas size")
-    
+
     except IndexError:
         print("No args provided. Using default canvas size.")
 
