@@ -31,26 +31,29 @@ class PixelArtApp(Frame):
         self.art_history_length = 5
         self.show_debug_console = False
         self.max_log_length = 10
-        self.left_bg_colour = "#baad82"
-        self.right_bg_colour = "#d6cca9"
+        self.left_bg_colour = "#4E4D48"
+        self.right_bg_colour = "#F5F5F5"
 
         self.menu_styling = {
             "bg": self.left_bg_colour,
-            "fg":  "#5b5b3f",
-            "bd": 2,
+            # "fg":  "#5b5b3f",
+            "bd": 0,
             "relief": "flat",
-            "activebackground": "#eeaa38",
+            "activebackground": "#F5F5F5",
             "activeborderwidth":0,
-            "font": ("comfortaa", 8, "bold"),
+            "activeforeground": "#4E4D48",
+            "background": "#4E4D48",
+            "foreground": "#F5F5F5",
+            "font": ("Arial", 10),
         }
         self.tool_button_styling = {
             "indicatoron": False,
             "bd": 0,
             "highlightbackground": self.left_bg_colour,
-            "highlightcolor": "#d1e072",
-            "activeforeground":  "#eeaa38",
-            "activebackground":  "#eeaa38",
-            "selectcolor": "#d1e072",
+            "highlightcolor": "#F5F5F5",
+            "activeforeground":  "#4E4D48",
+            "activebackground":  "#4E4D48",
+            "selectcolor": "#4E4D48",
             "relief": "flat",
             "offrelief": "flat",
             "bg": self.left_bg_colour,
